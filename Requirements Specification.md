@@ -59,7 +59,7 @@ On the business side, the app can also provide an overview of the cafe’s menu 
 **Network Constraints**
 
 * Handle connectivity issues and send intermittent request to fetch locations  
-* Handle various mobile network connections (2G, 3G, 4G, 5G, Wi-Fi)  
+* Handle various mobile network connections (2G, 3G, 4G, 5G, Wi-Fi)
 * Not limited in location (the users may be on the app any where they are)
 
 **Hardware Constraints**
@@ -78,22 +78,18 @@ On the business side, the app can also provide an overview of the cafe’s menu 
 * Requests should be handled within a few seconds of updating from user  
 * System must be able to support numerous concurrent users
 
-**Functional Requirements (still needs work)**:
+**Functional Requirements**:
 
-- Maybe users can specify a range/diameter to be notified when someone with the common interest enters that range  
-- Should the app focus on a single interest or support multiple? For example, in the “multiple interests” version, a user could subscribe to “motorcycling” and “barbie doll collecting”  
-- Should those interests be a set of pre-defined interests (i.e., decided by the app creators (you)) or open-ended (i.e., decided by the users)? (Based on hashtags? Or something else?)  
-- Can you specify filtering criteria? Should those criteria be arbitrary (chosen by each user) or pre-defined? (For example, age ranges.)  
-- Once joined up with a group (say, you have met up with a group and are going together on a ride), could members voice chat with all group members?  
-- When someone is in range, you can chat with them? If there are multiple people in range, does it automatically create a group chat?  
-- Should the “common interest” be strictly “common” or could it support diversity? For example, in the “common” mode, everyone must share the same interest, like “\#crocheting”. An example of “diversity” of interests would be one user plays guitar and is looking for people who play bass,  
-- drums, and/or sings vocals.  
-- Does the app only support impromptu group formation or does it support planned meet-ups? (For example, let’s plan to meet up Thursday evening at 6pm.)  
-- Can group formation be “sticky” or is it only based on the dynamically changing location and range and common interest? For example, let’s say everyone within a campus group all subscribes to a shared “secret” tag.  
-- Should there be a way to discover the interests of others in the surrounding area or not?  
-- Should there be support for “public” interests (those that are discoverable in a directory of local interests in the range) and “private” interests (those that are not listed and the users would have had to communicated to share their group-id outside the app)?  
-- Should there be a way to block a user? If so, what happens when User A blocks User X so neither User A can see User X nor vice versa. However, User X has the same interest as User A and User B. User B is visible and User X joins User B, and User A joins User B.  
-- Are users completely anonymous (randomly generated identifier), have a user-chosen anonymous user name, or tied to one’s real name (maybe linked to a Facebook account or UCInetID)?
+| *Features* | *Description* | *Pros & Cons* | *Use Cases* |
+| :---- | :---- | :---- | :---- |
+| Favorite a cafe | The user can click on a marker over a location of a cafe to ‘favorite’ it (similar to bookmarking). They should also be able to perform this action on the tab display. | Pros Users can save cafes and hobbies they liked Help match users with other people they might get along with Cons Interests of people may align, but it will not guarantee that people will get along | Basic The user will hover over a cafe marker, which should show a star icon. The user can click on the star and it should save the cafe as a ‘favorite’ Alternative Users can go into the tab display. Now users can go through and click through different cafes and ‘favorite’ the ones they went to Exception If a cafe does not appear in the map as a marker or in the tab display, then the user cannot ‘favorite’ that cafe, unless they add it in. |
+| Tab display for cafes | There will be a layout for every cafe showing users location, menu, photos, ratings, if any friends are there right now, and more to get the user interested | Pros Gives cafe’s designated spots to showcase their personality Cons tabs may be unbalanced in size | **Basic** Users can click a tab to open and see if any of their friends are there right now in the home page. Businesses can register cafes and customize their tab in their profile page  **Alternative** Users search for a specific cafe and once they see the cafe they press on it and its tab pops up **Exception** User searches for a cafe that does not exist and therefore does not have a tab |
+| Blocking Feature | Users can choose to block other users from seeing any and all activities from them | Pros Better security | **Basic** Users can block others if they are bullying them by searching their profile and clicking block **Alternative** Users can block users if they left an inappropriate review or send an inappropriate message to them **Exception** User searches for a profile that does not exist  |
+| Notification to send user location | Once users are in a cafe, they can choose to send a notification to their friends of publicly to indicate they are at this cafe and want to socialize. Users can choose who sees the notification | Pros Allows users to achieve the purpose of this app and send a signal showing they want to socialize Cons Security \+ also security for the cafe if a ton of people decide to mob it | **Basic** A user arrives at the cafe and chooses to send a notification to their friends saying they are checking out this cafe now and would be happy for someone to join them **Alternative** Users can through the app schedule to send a notification when they know they are going to a cafe later **Exception** Users cannot send a notification in the cafe if the cafe has blocked the user |
+| Searching for a Cafe  | A search bar that will recommend the user several cafes and allow them to search for a specific one to see reviews and if their friends have been | Pros Helps with local businesses Better user flow and allows users more control Cons Location dependent | **Basic** Businesses: can work with us through the software to register and have their café’s be searchable if new User can search for a specific cafe to see if any of their friends visited **Alternative** Users: can click on the search bar to see the most popular cafes right now in their area **Exception** Users search for a cafe that does not exist |
+| Cafe Filtering | Users can search for cafes and filter out cafes based on locations, aesthetics, if they are good study spots, size, price, and more | Pros More user control \+ filtering based on user’s preferences Cons Defining cafes based on tags | **Basic** A user searches for cafes that are only in their area and serve coffee **Alternative** Users can filter through their friend’s current cafe locations by proximity **Exception** User applies too many filters and no cafe’s pop up |
+| Group System | Similar to the notification feature, this app will also support a more refined “public notification” that acts as an invite for certain individuals. Think of it as creating a small party invite for talking about a certain show/movie or engaging in a certain hobby at a specific cafe. Businesses themselves can also choose to set up and plan these notifications if they want to host a certain event at their cafe. | Pros More socializing \+ meeting new people Having people with common interests meet up Cons Privacy and security Location dependent | Basic Businesses can create a “mahjong” night notification scheduled for a Friday night and those with profiles interested in games and socializing in the area will see a notification when they open the app. Users can create and view other people’s notifications and also see if any of their friends are going and how many people RSVP’d **Alternative** User can see other’s group notifications and decide if they want to send their own notification to tell their friends they are going to this event **Exception** Blocked users cannot RSVP or view a user’s event |
+
 
 	**Group Ideas:** 
 
