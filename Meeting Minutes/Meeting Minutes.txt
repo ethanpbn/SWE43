@@ -1,5 +1,19 @@
 Date and Type:
 
+05/08 - during weekly discussion
+Presented document on architecture and need to work on prototype for HW 2 Due on monday
+
+Summary
+- will split up prototype creating since requirements are very vaugue
+- Colin will work on UI/UX cuz he has experience with Figma
+- Vincent, Eric, and Ethan will work on coding primarily the backend
+- Justin will work on refining the document
+
+
+
+
+
+
 04/17 during weekly discussion
 in-person
 
@@ -20,3 +34,7 @@ Summary:
 - created google doc for HW #1 and sent in gc
 - began working on that raaaa
 
+
+Discussing the HW and ideas
+
+- all ideas and whatnot can be found in the google doc
