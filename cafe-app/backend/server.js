@@ -17,6 +17,23 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 })
 
+// Create tables if they don't exist
+pool.query(`
+  CREATE TABLE IF NOT EXISTS cafes (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    location VARCHAR(255),
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`, (err) => {
+  if (err) {
+    console.error('Error creating table:', err)
+  } else {
+    console.log('Table created or already exists.')
+  }
+})
+
 app.get('/', (req, res) => {
   res.send('Cafe app backend is running!')
 })

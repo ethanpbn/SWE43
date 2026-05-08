@@ -14,15 +14,15 @@ Before starting, ensure you have the following installed on your system:
 ### 2. PostgreSQL Database
 - Install PostgreSQL (version 12 or higher).
 - On macOS: Use Homebrew - `brew install postgresql`, then `brew services start postgresql`.
-- Create a database for the app: `createdb cafe_app_db` (or use any name you prefer).
-- Note: You can also use a cloud database like Supabase if you prefer not to install locally.
+- Create a database for the app: `createdb cafe_app_db` (or update the `.env` file with your database name).
+- Note: Tables are created automatically on first run. You can also use a cloud database like Supabase if you prefer not to install locally.
 
 ### 3. Expo CLI
 - Install globally: `npm install -g @expo/cli`.
 - This is required to run the React Native frontend.
 
 ### 4. Git
-- Install Git if not already available: `brew install git` (macOS) or download from [git-scm.com](https://git-scm.com/).
+- Assumed to be installed (everyone has access to the GitHub repository).
 
 ### 5. Optional: Development Tools
 - For testing on mobile devices:
@@ -38,22 +38,19 @@ Before starting, ensure you have the following installed on your system:
 
 ## Step 2: Set Up the Backend Environment
 
-The backend requires environment variables for database connection.
+The backend uses environment variables for database connection. A `.env` file is provided with defaults.
 
 1. Navigate to the backend directory: `cd backend`.
-2. Create a `.env` file: `touch .env`.
-3. Open `.env` in a text editor and add the following (replace with your actual values):
+2. Review/update the `.env` file if needed (e.g., change database name or credentials):
 
    ```
    PORT=3000
-   DB_USER=your_postgresql_username  # e.g., your system username
+   DB_USER=postgres  # Your PostgreSQL username
    DB_HOST=localhost
-   DB_NAME=cafe_app_db  # or your chosen database name
-   DB_PASSWORD=your_postgresql_password  # leave empty if no password set
+   DB_NAME=cafe_app_db  # Your database name
+   DB_PASSWORD=  # Leave empty if no password
    DB_PORT=5432
    ```
-
-4. Save and close the file.
 
 ## Step 3: Install Dependencies
 
@@ -65,12 +62,7 @@ Alternatively, install manually:
 - Backend: `cd backend && npm install`.
 - Frontend: `cd frontend && npm install`.
 
-## Step 4: Set Up the Database
-
-1. Ensure PostgreSQL is running.
-2. If you haven't created tables yet, the backend may need database schema. Check `backend/server.js` for any initialization code. (Note: The current code assumes tables exist; you may need to add SQL scripts if not provided.)
-
-## Step 5: Run the Application
+## Step 4: Run the Application
 
 1. From the `cafe-app` directory, run the start script: `./start.sh`.
    - This starts the backend (on port 3000) and frontend (via Expo).
@@ -100,10 +92,14 @@ Alternatively, install manually:
 - **Port conflicts**: Change `PORT` in `.env` if 3000 is in use.
 - **Permission errors**: On macOS, you may need to adjust permissions for scripts: `chmod +x start.sh`.
 
-## Next Steps
+## Deployment for End-Users
 
-- Explore the code: Backend in `backend/server.js`, frontend in `frontend/app/`.
-- Add features: Modify routes, components, or database schema as needed.
-- Deploy: For production, consider hosting the backend (e.g., on Heroku) and using Expo's build tools.
+If you want others to use the app without setting up their own database:
+
+1. Deploy the backend to a hosting service (e.g., Heroku, Railway, or Vercel) with a hosted PostgreSQL database (e.g., Supabase, Neon).
+2. Update the frontend's API calls to point to the deployed backend URL instead of `localhost:3000`.
+3. Build and distribute the frontend app via Expo: `npx expo build` or submit to app stores.
+
+This way, end-users only need to install the app or use Expo Go, without any setup.
 
 If you encounter issues, check the console output or refer to the Expo/Node.js documentation.
