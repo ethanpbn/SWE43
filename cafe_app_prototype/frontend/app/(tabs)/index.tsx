@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { View, Text, FlatList, StyleSheet } from 'react-native'
 
 export default function HomeScreen() {
-  const [cafes, setCafes] = useState([])
+  const [cafes, setCafes] = useState<{ id: number; name: string }[]>([])
 
   useEffect(() => {
     fetch('http://localhost:3000/api/cafes')
       .then(res => res.json())
-      .then(data => setCafes(data))
+      .then(data => { if (Array.isArray(data)) setCafes(data) })
+      .catch(() => {})
   }, [])
 
   return (
