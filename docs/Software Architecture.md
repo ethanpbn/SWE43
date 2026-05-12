@@ -81,5 +81,15 @@ Below are the function names and data passed across connectors for key use-case 
   * UI redirects user to Group dashboard (frontend.show\_group\_dashboard())  
     * From there business user can create more specifications like descriptions, time of event, location (if business has multiple pages), etc.  
   * Once posted will get sent to backend API so it can be displayed to customer users  
-  * 
+
+### **Prototype Implementation**
+
+The prototype serves as a functional scaffold for the application, validating that the chosen architecture for the cafe-finder app is viable. While it does not yet contain the full range of final features, it successfully demonstrates the end-to-end flow of data: the frontend effectively requests information, which the backend then retrieves by querying the database and serves back to the interface.
+
+The selected programming languages and frameworks have proven effective during this test phase. Consequently, no immediate changes are planned for the system architecture, languages, or communication protocols. 
+
+The primary challenge noted during development is the extensive environment setup required. The project relies on numerous software packages and modules that must be downloaded and installed to function, including:
+* **Node.js**: The runtime environment for executing JavaScript.
+* **Express**: The web framework used for the backend logic.
+* **PostgreSQL**: The relational database management system.
 
