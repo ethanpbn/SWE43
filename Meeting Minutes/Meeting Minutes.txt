@@ -1,6 +1,32 @@
 Date and Type:
 
+05/22 - during weekly discussion
+
+Attendees (3/5):
+Justin
+Eric
+Vincent
+
+Presented document on prototype, test plan, and ui. Need to work on prototype for feature implementation
+
+Summary
+- Colin will work on Figma Diagram and create the HW3 doc with the heuristic evaluation
+- Eric and Justin will work on coding primarily the prototype, adding the sign-in, profile, and direct messaging if possible
+- Vincent will work on the test plan (at least what will be used and the mininum requirements)
+- Ethan will help 'if' he can
+
+
+
+
+
 05/08 - during weekly discussion
+
+Attendees (4/5):
+Justin
+Eric
+Vincent
+Colin
+
 Presented document on architecture and need to work on prototype for HW 2 Due on monday
 
 Summary
