@@ -1,7 +1,22 @@
 import { useEffect, useRef } from 'react'
 
-const IRVINE_BOUNDS = '33.60,-117.95,33.75,-117.67'
-const OVERPASS_URL = `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="cafe"](${IRVINE_BOUNDS});out;`
+const QUERY = `[out:json];node["amenity"="cafe"](33.60,-117.95,33.75,-117.67);out;`
+const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+]
+
+async function fetchCafes() {
+  for (const mirror of OVERPASS_MIRRORS) {
+    try {
+      const res = await fetch(`${mirror}?data=${encodeURIComponent(QUERY)}`)
+      if (!res.ok) continue
+      const data = await res.json()
+      if (data.elements?.length) return data.elements
+    } catch {}
+  }
+  return []
+}
 
 export default function CafeMap() {
   const mapRef = useRef<HTMLDivElement>(null)
@@ -16,16 +31,10 @@ export default function CafeMap() {
     link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
     document.head.appendChild(link)
 
-    import('leaflet').then(L => {
+    import('leaflet').then(async L => {
       if (!mapRef.current) return
 
-      // Fix default marker icons broken by bundlers
       delete (L.Icon.Default.prototype as any)._getIconUrl
-      L.Icon.Default.mergeOptions({
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      })
 
       const map = L.map(mapRef.current, {
         wheelPxPerZoomLevel: 40,
@@ -49,16 +58,12 @@ export default function CafeMap() {
         popupAnchor: [0, -44],
       })
 
-      fetch(OVERPASS_URL)
-        .then(res => res.json())
-        .then(data => {
-          data.elements.forEach((cafe: any) => {
-            const name = cafe.tags?.name || 'Cafe'
-            L.marker([cafe.lat, cafe.lon], { icon: redMarker })
-              .addTo(map)
-              .bindPopup(`<strong>${name}</strong>`)
-          })
-        })
+      const cafes = await fetchCafes()
+      cafes.forEach((cafe: any) => {
+        L.marker([cafe.lat, cafe.lon], { icon: redMarker })
+          .addTo(map)
+          .bindPopup(`<strong>${cafe.tags?.name || 'Cafe'}</strong>`)
+      })
     })
   }, [])
 
