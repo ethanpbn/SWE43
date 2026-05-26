@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useAuth } from '@/context/auth'
+import { ThemedView } from '@/components/themed-view'
 
 export default function HomeScreen() {
   const [cafes, setCafes] = useState<{ id: number; name: string }[]>([])
@@ -21,39 +22,54 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Cafes Near You</Text>
-          {email ? <Text style={styles.emailText}>{email}</Text> : null}
+    <ThemedView style={styles.container}>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Cafes Near You</Text>
+            <Text style={styles.subtitle}>Discover your next favorite spot.</Text>
+            {email ? <Text style={styles.emailText}>{email}</Text> : null}
+          </View>
+          <TouchableOpacity style={styles.signOutButton} onPress={handleLogout}>
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.signOutButton} onPress={handleLogout}>
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
-      </View>
 
-      {cafes.length === 0 ? (
-        <Text style={styles.empty}>No cafes yet — add some!</Text>
-      ) : (
-        <FlatList
-          data={cafes}
-          keyExtractor={item => item.id.toString()}
-          renderItem={({ item }) => (
-            <Text style={styles.cafe}>{item.name}</Text>
-          )}
-        />
-      )}
-    </View>
+        {cafes.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>No cafes yet</Text>
+            <Text style={styles.emptyText}>Try refreshing or check back later.</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={cafes}
+            keyExtractor={item => item.id.toString()}
+            contentContainerStyle={styles.list}
+            renderItem={({ item }) => (
+              <View style={styles.cafeCard}>
+                <Text style={styles.cafe}>{item.name}</Text>
+              </View>
+            )}
+          />
+        )}
+      </View>
+    </ThemedView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 60, backgroundColor: '#fff' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  title: { fontSize: 24, fontWeight: '700', color: '#1a1a1a' },
-  emailText: { fontSize: 13, color: '#999', marginTop: 2 },
-  signOutButton: { backgroundColor: '#f5f5f5', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#e0e0e0' },
-  signOutText: { fontSize: 14, fontWeight: '600', color: '#e74c3c' },
-  empty: { color: 'gray', fontSize: 16 },
-  cafe: { fontSize: 18, padding: 10, borderBottomWidth: 1, borderColor: '#eee' },
+  container: { flex: 1 },
+  content: { flex: 1, padding: 20 },
+  header: { backgroundColor: '#fbf1e6', borderRadius: 24, padding: 20, marginBottom: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#8b5e34', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
+  title: { fontSize: 26, fontWeight: '700', color: '#4b3723', marginBottom: 4 },
+  subtitle: { fontSize: 15, color: '#7d5a44', marginBottom: 10 },
+  emailText: { fontSize: 13, color: '#8e725f' },
+  signOutButton: { backgroundColor: '#f1ded0', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 18 },
+  signOutText: { fontSize: 14, fontWeight: '700', color: '#7d5236' },
+  emptyCard: { backgroundColor: '#fff7ef', borderRadius: 20, padding: 24, alignItems: 'center', shadowColor: '#8b5e34', shadowOpacity: 0.05, shadowRadius: 18, shadowOffset: { width: 0, height: 7 }, elevation: 3 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#4b3723', marginBottom: 6 },
+  emptyText: { fontSize: 15, color: '#7a5f4d', textAlign: 'center' },
+  list: { paddingTop: 4 },
+  cafeCard: { backgroundColor: '#fff8f2', borderRadius: 20, paddingVertical: 18, paddingHorizontal: 20, marginBottom: 14, shadowColor: '#8b5e34', shadowOpacity: 0.05, shadowRadius: 18, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
+  cafe: { fontSize: 18, fontWeight: '600', color: '#4f3421' },
 })
