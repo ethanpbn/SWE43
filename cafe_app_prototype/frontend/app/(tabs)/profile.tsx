@@ -1,6 +1,8 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { View, StyleSheet, TouchableOpacity, Image, FlatList, useWindowDimensions, Modal, ScrollView, Text } from 'react-native'
 import { useRouter } from 'expo-router'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import * as ImagePicker from 'expo-image-picker'
 import { ThemedText } from '@/components/themed-text'
 import { ThemedView } from '@/components/themed-view'
 import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol'
@@ -26,7 +28,31 @@ const ITEMS: ReadonlyArray<{
 
 export default function ProfileScreen() {
   const { width, height } = useWindowDimensions()
-  const { logout } = useAuth()
+  const { logout, email } = useAuth()
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!email) return
+    AsyncStorage.getItem(`profilePhoto_${email}`).then(v => { if (v) setProfilePhoto(v) })
+  }, [email])
+
+  const pickPhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (status !== 'granted') return
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true,
+    })
+    if (result.canceled || !result.assets[0]) return
+    const uri = result.assets[0].base64
+      ? `data:image/jpeg;base64,${result.assets[0].base64}`
+      : result.assets[0].uri
+    setProfilePhoto(uri)
+    if (email) AsyncStorage.setItem(`profilePhoto_${email}`, uri)
+  }
   const router = useRouter()
   const { showLocation, toggleLocation } = useLocation()
 
@@ -45,12 +71,17 @@ export default function ProfileScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.topArea}>
-        <TouchableOpacity style={[styles.avatarButton, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]} activeOpacity={0.9}>
-          <Image
-            source={{ uri: 'https://via.placeholder.com/480x480.png?text=Profile' }}
-            style={styles.avatar}
-            resizeMode="cover"
-          />
+        <TouchableOpacity style={[styles.avatarButton, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]} activeOpacity={0.9} onPress={pickPhoto}>
+          {profilePhoto ? (
+            <Image source={{ uri: profilePhoto }} style={styles.avatar} resizeMode="cover" />
+          ) : (
+            <View style={styles.avatarDefault}>
+              <IconSymbol name="person.fill" size={avatarSize * 0.62} color="#7d5236" />
+            </View>
+          )}
+          <View style={styles.avatarEditBadge}>
+            <Text style={styles.avatarEditText}>Change Photo</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -121,7 +152,10 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   topArea: { flex: 0.28, alignItems: 'center', justifyContent: 'center' },
   avatarButton: { width: 200, height: 200, borderRadius: 100, overflow: 'hidden', borderWidth: 6, borderColor: '#7d5236', backgroundColor: '#fff8f2' },
-  avatar: { width: '100%', height: '100%' },
+  avatar: { width: '100%', height: '100%', borderRadius: 100, overflow: 'hidden' },
+  avatarDefault: { width: '100%', height: '100%', borderRadius: 100, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3e8dc' },
+  avatarEditBadge: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: 5, backgroundColor: 'rgba(125, 82, 54, 0.7)', alignItems: 'center', borderBottomLeftRadius: 100, borderBottomRightRadius: 100 },
+  avatarEditText: { color: '#fff8f2', fontSize: 11, fontWeight: '600' },
   gridArea: { flex: 0.62, paddingHorizontal: 20, paddingVertical: 12, justifyContent: 'center', alignItems: 'center', width: '70%', alignSelf: 'center' },
   row: { justifyContent: 'center', gap: 16, marginBottom: 16, width: '100%' },
   gridButton: { backgroundColor: '#fff8f2', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 10, width: 120, height: 120, alignItems: 'center', justifyContent: 'center', shadowColor: '#8b5e34', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
