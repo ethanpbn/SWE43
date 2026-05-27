@@ -19,7 +19,33 @@ async function fetchCafes() {
   return []
 }
 
-export type SelectedCafe = { name: string; rating: number; address?: string; hours?: string; cuisine?: string }
+const cityCache = new Map<string, string>()
+
+async function resolveCity(tags: any, lat: number, lon: number): Promise<string> {
+  if (tags?.['addr:city']) {
+    const state = tags['addr:state'] || 'CA'
+    return `${tags['addr:city']}, ${state}`
+  }
+  const key = `${lat.toFixed(2)},${lon.toFixed(2)}`
+  if (cityCache.has(key)) return cityCache.get(key)!
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=en`,
+      { headers: { 'User-Agent': 'CafeFinderApp/1.0' } }
+    )
+    const d = await res.json()
+    const a = d.address || {}
+    const city = a.city || a.town || a.village || a.suburb || ''
+    const state = a.ISO3166_2_lvl4?.replace('US-', '') || a.state_code || 'CA'
+    const result = city ? `${city}, ${state}` : state
+    cityCache.set(key, result)
+    return result
+  } catch {
+    return 'CA'
+  }
+}
+
+export type SelectedCafe = { id: string; name: string; rating: number; street?: string; city: string; hours?: string; cuisine?: string }
 
 type Props = { onSelectCafe?: (cafe: SelectedCafe | null) => void }
 
@@ -78,15 +104,16 @@ export default function CafeMap({ onSelectCafe }: Props) {
         const hours = cafe.tags?.opening_hours as string | undefined
         const cuisine = cafe.tags?.cuisine as string | undefined
         const houseNum = cafe.tags?.['addr:housenumber']
-        const street = cafe.tags?.['addr:street']
-        const address = houseNum && street ? `${houseNum} ${street}` : street || undefined
+        const streetName = cafe.tags?.['addr:street']
+        const street = houseNum && streetName ? `${houseNum} ${streetName}` : streetName
         const rating = parseFloat((3.8 + (Number(cafe.id) % 13) * 0.1).toFixed(1))
 
         L.marker([cafe.lat, cafe.lon], { icon: redMarker })
           .addTo(map)
-          .on('click', (e: any) => {
+          .on('click', async (e: any) => {
             L.DomEvent.stopPropagation(e)
-            onSelectRef.current?.({ name, rating, address, hours, cuisine })
+            const city = await resolveCity(cafe.tags, cafe.lat, cafe.lon)
+            onSelectRef.current?.({ id: String(cafe.id), name, rating, street, city, hours, cuisine })
           })
       })
 

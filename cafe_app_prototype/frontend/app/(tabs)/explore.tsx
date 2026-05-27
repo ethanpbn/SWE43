@@ -1,10 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useFocusEffect } from 'expo-router'
 import { ThemedText } from '@/components/themed-text'
 import { ThemedView } from '@/components/themed-view'
+import { IconSymbol } from '@/components/ui/icon-symbol'
 import CafeMap from '@/components/cafe-map'
+import { useAuth } from '@/context/auth'
 
-type SelectedCafe = { name: string; rating: number; address?: string; hours?: string; cuisine?: string }
+type SelectedCafe = { id: string; name: string; rating: number; street?: string; city: string; hours?: string; cuisine?: string }
 
 const DAY_IDX: Record<string, number> = { Mo: 1, Tu: 2, We: 3, Th: 4, Fr: 5, Sa: 6, Su: 0 }
 
@@ -55,6 +59,36 @@ function StarRating({ rating }: { rating: number }) {
 
 export default function ExploreScreen() {
   const [selectedCafe, setSelectedCafe] = useState<SelectedCafe | null>(null)
+  const [mapFavs, setMapFavs] = useState<Set<string>>(new Set())
+  const { email } = useAuth()
+
+  useEffect(() => {
+    if (!email) return
+    AsyncStorage.getItem(`map_favorites_${email}`).then(v => {
+      if (v) setMapFavs(new Set(JSON.parse(v)))
+    })
+  }, [email])
+
+  useFocusEffect(useCallback(() => {
+    if (!email) return
+    AsyncStorage.getItem(`map_favorites_${email}`).then(v => {
+      setMapFavs(v ? new Set(JSON.parse(v)) : new Set())
+    })
+  }, [email]))
+
+  const toggleMapFav = async (cafe: SelectedCafe) => {
+    if (!email) return
+    const { id } = cafe
+    const isFav = mapFavs.has(id)
+    const next = new Set(mapFavs)
+    isFav ? next.delete(id) : next.add(id)
+    setMapFavs(next)
+    await AsyncStorage.setItem(`map_favorites_${email}`, JSON.stringify([...next]))
+    const v = await AsyncStorage.getItem(`map_favorites_data_${email}`)
+    const data = v ? JSON.parse(v) : {}
+    if (isFav) delete data[id]; else data[id] = cafe
+    await AsyncStorage.setItem(`map_favorites_data_${email}`, JSON.stringify(data))
+  }
 
   return (
     <ThemedView style={styles.container}>
@@ -71,12 +105,15 @@ export default function ExploreScreen() {
             <>
               <View style={styles.badgeRow}>
                 <Text style={styles.cafeName} numberOfLines={1}>{selectedCafe.name}</Text>
+                <TouchableOpacity onPress={() => toggleMapFav(selectedCafe)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.heartBtn}>
+                  <IconSymbol name={mapFavs.has(selectedCafe.id) ? 'heart.fill' : 'heart'} size={20} color={mapFavs.has(selectedCafe.id) ? '#7d5236' : '#c4a882'} />
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => setSelectedCafe(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Text style={styles.closeBtn}>✕</Text>
                 </TouchableOpacity>
               </View>
               <StarRating rating={selectedCafe.rating} />
-              {selectedCafe.address && <Text style={styles.cafeDetail}>Location: {selectedCafe.address}</Text>}
+              <Text style={styles.cafeDetail}>Location: {selectedCafe.street ? `${selectedCafe.street}, ${selectedCafe.city}` : selectedCafe.city}</Text>
               {selectedCafe.hours && <Text style={styles.cafeDetail}>Hours: {formatHours(selectedCafe.hours)}</Text>}
               {selectedCafe.cuisine && <Text style={styles.cafeDetail}>Specialty: {selectedCafe.cuisine.replace(/_shop$/i, '').replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())}</Text>}
             </>
@@ -104,6 +141,7 @@ const styles = StyleSheet.create({
   badgeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   cafeName: { fontSize: 18, fontWeight: '700', color: '#4b3723', flex: 1, marginRight: 8 },
   closeBtn: { fontSize: 16, color: '#9b7a5e', fontWeight: '600' },
+  heartBtn: { marginRight: 8 },
   ratingText: { fontSize: 14, color: '#7a5f4d', marginBottom: 6 },
   starIcon: { fontSize: 14, color: '#c8973a' },
   ratingNum: { fontSize: 13, color: '#7a5f4d', marginLeft: 4 },
