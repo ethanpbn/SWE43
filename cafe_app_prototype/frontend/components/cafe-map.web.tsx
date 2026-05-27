@@ -47,12 +47,13 @@ async function resolveCity(tags: any, lat: number, lon: number): Promise<string>
 
 export type SelectedCafe = { id: string; name: string; rating: number; street?: string; city: string; hours?: string; cuisine?: string }
 
-type Props = { onSelectCafe?: (cafe: SelectedCafe | null) => void }
+type Props = { onSelectCafe?: (cafe: SelectedCafe | null) => void; mockLocations?: { lat: number; lng: number }[] }
 
-export default function CafeMap({ onSelectCafe }: Props) {
+export default function CafeMap({ onSelectCafe, mockLocations }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
   const leafletMapRef = useRef<any>(null)
   const userMarkerRef = useRef<any>(null)
+  const mockMarkersRef = useRef<any[]>([])
   const onSelectRef = useRef(onSelectCafe)
   const initialized = useRef(false)
   const [mapReady, setMapReady] = useState(false)
@@ -122,36 +123,58 @@ export default function CafeMap({ onSelectCafe }: Props) {
     })
   }, [])
 
+  // Real user location (blue dot)
   useEffect(() => {
     if (!mapReady || !leafletMapRef.current) return
-
     import('leaflet').then(L => {
       if (showLocation) {
         navigator.geolocation.getCurrentPosition(
           pos => {
             if (userMarkerRef.current) userMarkerRef.current.remove()
-            const userIcon = L.divIcon({
+            const icon = L.divIcon({
               className: '',
               html: `<div style="width:16px;height:16px;border-radius:50%;background:#4285F4;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`,
               iconSize: [16, 16],
               iconAnchor: [8, 8],
             })
-            userMarkerRef.current = L.marker(
-              [pos.coords.latitude, pos.coords.longitude],
-              { icon: userIcon }
-            ).addTo(leafletMapRef.current).bindPopup('You are here')
+            userMarkerRef.current = L.marker([pos.coords.latitude, pos.coords.longitude], { icon })
+              .addTo(leafletMapRef.current)
+              .bindPopup('You are here')
             leafletMapRef.current.setView([pos.coords.latitude, pos.coords.longitude], 15)
           },
           () => {}
         )
       } else {
-        if (userMarkerRef.current) {
-          userMarkerRef.current.remove()
-          userMarkerRef.current = null
-        }
+        if (userMarkerRef.current) { userMarkerRef.current.remove(); userMarkerRef.current = null }
       }
     })
   }, [showLocation, mapReady])
+
+  // Mock user locations (person icons)
+  useEffect(() => {
+    if (!mapReady || !leafletMapRef.current) return
+    import('leaflet').then(L => {
+      mockMarkersRef.current.forEach(m => m.remove())
+      mockMarkersRef.current = []
+      if (!mockLocations?.length) return
+      const icon = L.divIcon({
+        className: '',
+        html: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 36 36" style="filter: drop-shadow(0 3px 5px rgba(0,0,0,0.45)) drop-shadow(0 1px 2px rgba(0,0,0,0.3))">
+          <circle cx="18" cy="18" r="18" fill="#4285F4"/>
+          <circle cx="18" cy="13" r="5.5" fill="white"/>
+          <path d="M6 30c0-6.6 5.4-12 12-12s12 5.4 12 12" fill="white"/>
+        </svg>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      })
+      mockLocations.forEach(loc => {
+        const m = L.marker([loc.lat, loc.lng], { icon })
+          .addTo(leafletMapRef.current)
+          .bindPopup('Simulated user')
+        mockMarkersRef.current.push(m)
+      })
+    })
+  }, [mockLocations, mapReady])
 
   return <div ref={mapRef} style={{ width: '100%', height: '100vh' }} />
 }

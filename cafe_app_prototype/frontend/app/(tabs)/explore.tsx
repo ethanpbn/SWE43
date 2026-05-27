@@ -7,8 +7,16 @@ import { ThemedView } from '@/components/themed-view'
 import { IconSymbol } from '@/components/ui/icon-symbol'
 import CafeMap from '@/components/cafe-map'
 import { useAuth } from '@/context/auth'
+import { useLocation } from '@/context/location'
 
 type SelectedCafe = { id: string; name: string; rating: number; street?: string; city: string; hours?: string; cuisine?: string }
+
+// Set to a { lat, lng } to simulate a user at that location; null to use real geolocation
+const DEV_MOCK_LOCATIONS = [
+  { lat: 33.6430, lng: -117.8420 },
+  { lat: 33.6500, lng: -117.8360 },
+  { lat: 33.6370, lng: -117.8490 },
+]
 
 const DAY_IDX: Record<string, number> = { Mo: 1, Tu: 2, We: 3, Th: 4, Fr: 5, Sa: 6, Su: 0 }
 
@@ -93,6 +101,7 @@ export default function ExploreScreen() {
   const [selectedCafe, setSelectedCafe] = useState<SelectedCafe | null>(null)
   const [mapFavs, setMapFavs] = useState<Set<string>>(new Set())
   const { email } = useAuth()
+  const { showLocation } = useLocation()
 
   useEffect(() => {
     if (!email) return
@@ -130,7 +139,7 @@ export default function ExploreScreen() {
       </View>
 
       <View style={styles.mapCard}>
-        <CafeMap onSelectCafe={setSelectedCafe} />
+        <CafeMap onSelectCafe={setSelectedCafe} mockLocations={showLocation ? DEV_MOCK_LOCATIONS : undefined} />
 
         <View style={styles.infoBadge}>
           {selectedCafe ? (
