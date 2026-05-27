@@ -47,13 +47,13 @@ async function resolveCity(tags: any, lat: number, lon: number): Promise<string>
 
 export type SelectedCafe = { id: string; name: string; rating: number; street?: string; city: string; hours?: string; cuisine?: string }
 
-type Props = { onSelectCafe?: (cafe: SelectedCafe | null) => void; mockLocations?: { lat: number; lng: number }[] }
+type Props = { onSelectCafe?: (cafe: SelectedCafe | null) => void; nearbyUsers?: { lat: number; lng: number }[] }
 
-export default function CafeMap({ onSelectCafe, mockLocations }: Props) {
+export default function CafeMap({ onSelectCafe, nearbyUsers }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
   const leafletMapRef = useRef<any>(null)
   const userMarkerRef = useRef<any>(null)
-  const mockMarkersRef = useRef<any[]>([])
+  const nearbyMarkersRef = useRef<any[]>([])
   const onSelectRef = useRef(onSelectCafe)
   const initialized = useRef(false)
   const [mapReady, setMapReady] = useState(false)
@@ -150,16 +150,15 @@ export default function CafeMap({ onSelectCafe, mockLocations }: Props) {
     })
   }, [showLocation, mapReady])
 
-  // Mock user locations (person icons)
   useEffect(() => {
     if (!mapReady || !leafletMapRef.current) return
     import('leaflet').then(L => {
-      mockMarkersRef.current.forEach(m => m.remove())
-      mockMarkersRef.current = []
-      if (!mockLocations?.length) return
+      nearbyMarkersRef.current.forEach(m => m.remove())
+      nearbyMarkersRef.current = []
+      if (!nearbyUsers?.length) return
       const icon = L.divIcon({
         className: '',
-        html: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 36 36" style="filter: drop-shadow(0 3px 5px rgba(0,0,0,0.45)) drop-shadow(0 1px 2px rgba(0,0,0,0.3))">
+        html: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 36 36" style="filter:drop-shadow(0 3px 5px rgba(0,0,0,0.45)) drop-shadow(0 1px 2px rgba(0,0,0,0.3))">
           <circle cx="18" cy="18" r="18" fill="#4285F4"/>
           <circle cx="18" cy="13" r="5.5" fill="white"/>
           <path d="M6 30c0-6.6 5.4-12 12-12s12 5.4 12 12" fill="white"/>
@@ -167,14 +166,14 @@ export default function CafeMap({ onSelectCafe, mockLocations }: Props) {
         iconSize: [24, 24],
         iconAnchor: [12, 12],
       })
-      mockLocations.forEach(loc => {
-        const m = L.marker([loc.lat, loc.lng], { icon })
+      nearbyUsers.forEach(u => {
+        const m = L.marker([u.lat, u.lng], { icon })
           .addTo(leafletMapRef.current)
-          .bindPopup('Simulated user')
-        mockMarkersRef.current.push(m)
+          .bindPopup('Nearby user')
+        nearbyMarkersRef.current.push(m)
       })
     })
-  }, [mockLocations, mapReady])
+  }, [nearbyUsers, mapReady])
 
   return <div ref={mapRef} style={{ width: '100%', height: '100vh' }} />
 }

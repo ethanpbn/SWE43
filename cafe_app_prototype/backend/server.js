@@ -146,6 +146,17 @@ app.delete('/api/favorites/:cafeId', requireAuth, async (req, res) => {
   }
 })
 
+app.get('/api/users/locations', async (_req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT email, location_lat AS lat, location_lng AS lng FROM users WHERE show_location = TRUE AND location_lat IS NOT NULL'
+    )
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' })
+  }
+})
+
 app.get('/api/cafes', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM cafes')

@@ -9,14 +9,9 @@ import CafeMap from '@/components/cafe-map'
 import { useAuth } from '@/context/auth'
 import { useLocation } from '@/context/location'
 
-type SelectedCafe = { id: string; name: string; rating: number; street?: string; city: string; hours?: string; cuisine?: string }
+const API = 'http://localhost:3000'
 
-// Set to a { lat, lng } to simulate a user at that location; null to use real geolocation
-const DEV_MOCK_LOCATIONS = [
-  { lat: 33.6430, lng: -117.8420 },
-  { lat: 33.6500, lng: -117.8360 },
-  { lat: 33.6370, lng: -117.8490 },
-]
+type SelectedCafe = { id: string; name: string; rating: number; street?: string; city: string; hours?: string; cuisine?: string }
 
 const DAY_IDX: Record<string, number> = { Mo: 1, Tu: 2, We: 3, Th: 4, Fr: 5, Sa: 6, Su: 0 }
 
@@ -100,8 +95,17 @@ function StarRating({ rating }: { rating: number }) {
 export default function ExploreScreen() {
   const [selectedCafe, setSelectedCafe] = useState<SelectedCafe | null>(null)
   const [mapFavs, setMapFavs] = useState<Set<string>>(new Set())
+  const [nearbyUsers, setNearbyUsers] = useState<{ lat: number; lng: number }[]>([])
   const { email } = useAuth()
   const { showLocation } = useLocation()
+
+  useEffect(() => {
+    if (!showLocation) { setNearbyUsers([]); return }
+    fetch(`${API}/api/users/locations`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setNearbyUsers(data) })
+      .catch(() => {})
+  }, [showLocation])
 
   useEffect(() => {
     if (!email) return
@@ -139,7 +143,7 @@ export default function ExploreScreen() {
       </View>
 
       <View style={styles.mapCard}>
-        <CafeMap onSelectCafe={setSelectedCafe} mockLocations={showLocation ? DEV_MOCK_LOCATIONS : undefined} />
+        <CafeMap onSelectCafe={setSelectedCafe} nearbyUsers={nearbyUsers} />
 
         <View style={styles.infoBadge}>
           {selectedCafe ? (
