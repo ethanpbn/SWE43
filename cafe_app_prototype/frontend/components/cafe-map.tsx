@@ -1,8 +1,9 @@
 import MapView, { PROVIDER_DEFAULT } from 'react-native-maps'
 import { StyleSheet } from 'react-native'
 import { useLocation } from '@/context/location'
+type Props = { onSelectCafe?: (cafe: { name: string; description: string; rating: number } | null) => void }
 
-export default function CafeMap() {
+export default function CafeMap({ onSelectCafe: _onSelectCafe }: Props) {
   const { showLocation } = useLocation()
 
   return (

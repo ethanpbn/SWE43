@@ -19,13 +19,20 @@ async function fetchCafes() {
   return []
 }
 
-export default function CafeMap() {
+export type SelectedCafe = { name: string; rating: number; address?: string; hours?: string; cuisine?: string }
+
+type Props = { onSelectCafe?: (cafe: SelectedCafe | null) => void }
+
+export default function CafeMap({ onSelectCafe }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
   const leafletMapRef = useRef<any>(null)
   const userMarkerRef = useRef<any>(null)
+  const onSelectRef = useRef(onSelectCafe)
   const initialized = useRef(false)
   const [mapReady, setMapReady] = useState(false)
   const { showLocation } = useLocation()
+
+  useEffect(() => { onSelectRef.current = onSelectCafe }, [onSelectCafe])
 
   useEffect(() => {
     if (initialized.current || !mapRef.current) return
@@ -63,11 +70,24 @@ export default function CafeMap() {
         popupAnchor: [0, -44],
       })
 
+      map.on('click', () => onSelectRef.current?.(null))
+
       const cafes = await fetchCafes()
       cafes.forEach((cafe: any) => {
+        const name = cafe.tags?.name || 'Café'
+        const hours = cafe.tags?.opening_hours as string | undefined
+        const cuisine = cafe.tags?.cuisine as string | undefined
+        const houseNum = cafe.tags?.['addr:housenumber']
+        const street = cafe.tags?.['addr:street']
+        const address = houseNum && street ? `${houseNum} ${street}` : street || undefined
+        const rating = parseFloat((3.8 + (Number(cafe.id) % 13) * 0.1).toFixed(1))
+
         L.marker([cafe.lat, cafe.lon], { icon: redMarker })
           .addTo(map)
-          .bindPopup(`<strong>${cafe.tags?.name || 'Cafe'}</strong>`)
+          .on('click', (e: any) => {
+            L.DomEvent.stopPropagation(e)
+            onSelectRef.current?.({ name, rating, address, hours, cuisine })
+          })
       })
 
       leafletMapRef.current = map
@@ -82,9 +102,7 @@ export default function CafeMap() {
       if (showLocation) {
         navigator.geolocation.getCurrentPosition(
           pos => {
-            if (userMarkerRef.current) {
-              userMarkerRef.current.remove()
-            }
+            if (userMarkerRef.current) userMarkerRef.current.remove()
             const userIcon = L.divIcon({
               className: '',
               html: `<div style="width:16px;height:16px;border-radius:50%;background:#4285F4;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`,
@@ -95,7 +113,6 @@ export default function CafeMap() {
               [pos.coords.latitude, pos.coords.longitude],
               { icon: userIcon }
             ).addTo(leafletMapRef.current).bindPopup('You are here')
-
             leafletMapRef.current.setView([pos.coords.latitude, pos.coords.longitude], 15)
           },
           () => {}
@@ -109,10 +126,5 @@ export default function CafeMap() {
     })
   }, [showLocation, mapReady])
 
-  return (
-    <div
-      ref={mapRef}
-      style={{ width: '100%', height: '100vh' }}
-    />
-  )
+  return <div ref={mapRef} style={{ width: '100%', height: '100vh' }} />
 }
