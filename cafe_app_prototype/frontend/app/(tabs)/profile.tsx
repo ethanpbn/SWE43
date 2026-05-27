@@ -2,18 +2,23 @@ import React from 'react'
 import { View, StyleSheet, TouchableOpacity, Image, FlatList, useWindowDimensions } from 'react-native'
 import { ThemedText } from '@/components/themed-text'
 import { ThemedView } from '@/components/themed-view'
-import { IconSymbol } from '@/components/ui/icon-symbol'
+import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol'
 
-const ITEMS = [
+const ITEMS: ReadonlyArray<{
+  key: string
+  label: string
+  icon?: IconSymbolName
+  isSpacer?: true
+}> = [
   { key: 'favorites', label: 'Favorites', icon: 'heart.fill' },
   { key: 'history', label: 'History', icon: 'clock.fill' },
   { key: 'language', label: 'Language', icon: 'globe' },
   { key: 'location', label: 'Location', icon: 'location.fill' },
   { key: 'blocks', label: 'Blocks', icon: 'nosign' },
   { key: 'terms', label: 'Terms of Service', icon: 'doc.text.fill' },
-  { key: 'spacer1', label: '', icon: '', isSpacer: true },
+  { key: 'spacer1', label: '', isSpacer: true },
   { key: 'logoff', label: 'Log Off', icon: 'power' },
-  { key: 'spacer2', label: '', icon: '', isSpacer: true },
+  { key: 'spacer2', label: '', isSpacer: true },
 ]
 
 export default function ProfileScreen() {
@@ -51,7 +56,7 @@ export default function ProfileScreen() {
             const extraTitleStyle = item.key === 'terms' ? styles.termsTitle : undefined
             return (
               <TouchableOpacity style={[styles.gridButton, { width: buttonSize, height: buttonSize, borderRadius: Math.round(buttonSize * 0.12) }]} activeOpacity={0.85}>
-                <IconSymbol name={item.icon} size={iconSize} color="#7d5236" />
+                <IconSymbol name={item.icon!} size={iconSize} color="#7d5236" />
                 <ThemedText type="defaultSemiBold" style={[styles.gridTitle, extraTitleStyle, { fontSize: labelFontSize }]}>{item.label}</ThemedText>
               </TouchableOpacity>
             )
