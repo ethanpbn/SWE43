@@ -1,8 +1,10 @@
 import React from 'react'
 import { View, StyleSheet, TouchableOpacity, Image, FlatList, useWindowDimensions } from 'react-native'
+import { useRouter } from 'expo-router'
 import { ThemedText } from '@/components/themed-text'
 import { ThemedView } from '@/components/themed-view'
 import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol'
+import { useAuth } from '@/context/auth'
 import { useLocation } from '@/context/location'
 
 const ITEMS: ReadonlyArray<{
@@ -24,7 +26,14 @@ const ITEMS: ReadonlyArray<{
 
 export default function ProfileScreen() {
   const { width, height } = useWindowDimensions()
+  const { logout } = useAuth()
+  const router = useRouter()
   const { showLocation, toggleLocation } = useLocation()
+
+  const handleLogoff = () => {
+    logout()
+    router.replace('/login')
+  }
 
   const avatarSize = Math.max(120, Math.min(200, Math.floor(Math.min(width, height) * 0.36)))
   const buttonSize = Math.max(64, Math.min(140, Math.floor(Math.min(width, height) * 0.18)))
@@ -64,7 +73,7 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 style={[buttonBg, { width: buttonSize, height: buttonSize, borderRadius: Math.round(buttonSize * 0.12) }]}
                 activeOpacity={0.85}
-                onPress={isLocationButton ? toggleLocation : undefined}
+                onPress={isLocationButton ? toggleLocation : item.key === 'logoff' ? handleLogoff : undefined}
               >
                 <IconSymbol name={item.icon!} size={iconSize} color={iconColor} />
                 <ThemedText type="defaultSemiBold" style={[styles.gridTitle, extraTitleStyle, { fontSize: labelFontSize, color: titleColor }]}>{item.label}</ThemedText>

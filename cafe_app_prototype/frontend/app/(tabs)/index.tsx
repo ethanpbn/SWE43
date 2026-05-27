@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native'
-import { useRouter } from 'expo-router'
+import { View, Text, FlatList, StyleSheet } from 'react-native'
 import { useAuth } from '@/context/auth'
 import { ThemedView } from '@/components/themed-view'
 
 export default function HomeScreen() {
   const [cafes, setCafes] = useState<{ id: number; name: string }[]>([])
-  const { logout, email } = useAuth()
-  const router = useRouter()
+  const { email } = useAuth()
 
   useEffect(() => {
     fetch('http://localhost:3000/api/cafes')
@@ -15,11 +13,6 @@ export default function HomeScreen() {
       .then(data => { if (Array.isArray(data)) setCafes(data) })
       .catch(() => {})
   }, [])
-
-  const handleLogout = () => {
-    logout()
-    router.replace('/login')
-  }
 
   return (
     <ThemedView style={styles.container}>
@@ -30,9 +23,6 @@ export default function HomeScreen() {
             <Text style={styles.subtitle}>Discover your next favorite spot.</Text>
             {email ? <Text style={styles.emailText}>{email}</Text> : null}
           </View>
-          <TouchableOpacity style={styles.signOutButton} onPress={handleLogout}>
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </TouchableOpacity>
         </View>
 
         {cafes.length === 0 ? (
@@ -64,8 +54,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: '700', color: '#4b3723', marginBottom: 4 },
   subtitle: { fontSize: 15, color: '#7d5a44', marginBottom: 10 },
   emailText: { fontSize: 13, color: '#8e725f' },
-  signOutButton: { backgroundColor: '#f1ded0', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 18 },
-  signOutText: { fontSize: 14, fontWeight: '700', color: '#7d5236' },
   emptyCard: { backgroundColor: '#fff7ef', borderRadius: 20, padding: 24, alignItems: 'center', shadowColor: '#8b5e34', shadowOpacity: 0.05, shadowRadius: 18, shadowOffset: { width: 0, height: 7 }, elevation: 3 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: '#4b3723', marginBottom: 6 },
   emptyText: { fontSize: 15, color: '#7a5f4d', textAlign: 'center' },
