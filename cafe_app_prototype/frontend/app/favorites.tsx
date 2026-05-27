@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity } from 'react-native'
+import { useRouter } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useFocusEffect } from 'expo-router'
 import { useAuth } from '@/context/auth'
 import { ThemedView } from '@/components/themed-view'
 import { IconSymbol } from '@/components/ui/icon-symbol'
@@ -16,11 +16,12 @@ type Cafe = {
   logo_url: string
 }
 
-export default function HomeScreen() {
+export default function FavoritesScreen() {
   const [cafes, setCafes] = useState<Cafe[]>([])
   const [favorites, setFavorites] = useState<Set<number>>(new Set())
   const [failedLogos, setFailedLogos] = useState<Set<number>>(new Set())
   const { email, token } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
     fetch(`${API}/api/cafes`)
@@ -49,15 +50,6 @@ export default function HomeScreen() {
       .catch(() => {})
   }, [token, email])
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!email) return
-      AsyncStorage.getItem(`favorites_${email}`).then(v => {
-        if (v) setFavorites(new Set(JSON.parse(v)))
-      })
-    }, [email])
-  )
-
   const toggleFavorite = async (cafeId: number) => {
     if (!token || !email) return
     const isFav = favorites.has(cafeId)
@@ -81,23 +73,30 @@ export default function HomeScreen() {
     }
   }
 
+  const favoritedCafes = cafes.filter(c => favorites.has(c.id))
+
   return (
     <ThemedView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Cafes Near You</Text>
-          <Text style={styles.subtitle}>Discover your next favorite spot.</Text>
-          {email ? <Text style={styles.emailText}>{email}</Text> : null}
+          <View style={styles.titleRow}>
+            <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
+              <IconSymbol name="chevron.left" size={22} color="#7d5236" />
+            </TouchableOpacity>
+            <Text style={styles.title}>My Favorites</Text>
+            <View style={{ width: 22 }} />
+          </View>
+          <Text style={styles.subtitle}>Cafes you've saved.</Text>
         </View>
 
-        {cafes.length === 0 ? (
+        {favoritedCafes.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No cafes yet</Text>
-            <Text style={styles.emptyText}>Try refreshing or check back later.</Text>
+            <Text style={styles.emptyTitle}>No favorites yet</Text>
+            <Text style={styles.emptyText}>Heart a cafe on the home screen to save it here.</Text>
           </View>
         ) : (
           <FlatList
-            data={cafes}
+            data={favoritedCafes}
             keyExtractor={item => item.id.toString()}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => {
@@ -138,9 +137,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, padding: 20 },
   header: { backgroundColor: '#fbf1e6', borderRadius: 24, padding: 20, marginBottom: 18, shadowColor: '#8b5e34', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
-  title: { fontSize: 26, fontWeight: '700', color: '#4b3723', marginBottom: 4 },
-  subtitle: { fontSize: 15, color: '#7d5a44', marginBottom: 2 },
-  emailText: { fontSize: 13, color: '#8e725f', marginTop: 4 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  title: { fontSize: 26, fontWeight: '700', color: '#4b3723', flex: 1, textAlign: 'center' },
+  subtitle: { fontSize: 15, color: '#7d5a44', textAlign: 'center' },
   emptyCard: { backgroundColor: '#fff7ef', borderRadius: 20, padding: 24, alignItems: 'center', shadowColor: '#8b5e34', shadowOpacity: 0.05, shadowRadius: 18, shadowOffset: { width: 0, height: 7 }, elevation: 3 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: '#4b3723', marginBottom: 6 },
   emptyText: { fontSize: 15, color: '#7a5f4d', textAlign: 'center' },
