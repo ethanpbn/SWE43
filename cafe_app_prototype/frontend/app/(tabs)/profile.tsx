@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Image, FlatList, useWindowDimension
 import { ThemedText } from '@/components/themed-text'
 import { ThemedView } from '@/components/themed-view'
 import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol'
+import { useLocation } from '@/context/location'
 
 const ITEMS: ReadonlyArray<{
   key: string
@@ -23,8 +24,8 @@ const ITEMS: ReadonlyArray<{
 
 export default function ProfileScreen() {
   const { width, height } = useWindowDimensions()
+  const { showLocation, toggleLocation } = useLocation()
 
-  // Responsive sizes (clamped)
   const avatarSize = Math.max(120, Math.min(200, Math.floor(Math.min(width, height) * 0.36)))
   const buttonSize = Math.max(64, Math.min(140, Math.floor(Math.min(width, height) * 0.18)))
   const iconSize = Math.max(20, Math.floor(buttonSize * 0.36))
@@ -53,11 +54,20 @@ export default function ProfileScreen() {
             if (item.isSpacer) {
               return <View style={[styles.spacer, { width: buttonSize, height: buttonSize }]} />
             }
+            const isLocationButton = item.key === 'location'
+            const isLocationActive = isLocationButton && showLocation
             const extraTitleStyle = item.key === 'terms' ? styles.termsTitle : undefined
+            const buttonBg = isLocationActive ? styles.gridButtonActive : styles.gridButton
+            const iconColor = isLocationActive ? '#fff8f2' : '#7d5236'
+            const titleColor = isLocationActive ? '#fff8f2' : '#4b3723'
             return (
-              <TouchableOpacity style={[styles.gridButton, { width: buttonSize, height: buttonSize, borderRadius: Math.round(buttonSize * 0.12) }]} activeOpacity={0.85}>
-                <IconSymbol name={item.icon!} size={iconSize} color="#7d5236" />
-                <ThemedText type="defaultSemiBold" style={[styles.gridTitle, extraTitleStyle, { fontSize: labelFontSize }]}>{item.label}</ThemedText>
+              <TouchableOpacity
+                style={[buttonBg, { width: buttonSize, height: buttonSize, borderRadius: Math.round(buttonSize * 0.12) }]}
+                activeOpacity={0.85}
+                onPress={isLocationButton ? toggleLocation : undefined}
+              >
+                <IconSymbol name={item.icon!} size={iconSize} color={iconColor} />
+                <ThemedText type="defaultSemiBold" style={[styles.gridTitle, extraTitleStyle, { fontSize: labelFontSize, color: titleColor }]}>{item.label}</ThemedText>
               </TouchableOpacity>
             )
           }}
@@ -75,6 +85,7 @@ const styles = StyleSheet.create({
   gridArea: { flex: 0.62, paddingHorizontal: 20, paddingVertical: 12, justifyContent: 'center', alignItems: 'center', width: '70%', alignSelf: 'center' },
   row: { justifyContent: 'center', gap: 16, marginBottom: 16, width: '100%' },
   gridButton: { backgroundColor: '#fff8f2', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 10, width: 120, height: 120, alignItems: 'center', justifyContent: 'center', shadowColor: '#8b5e34', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
+  gridButtonActive: { backgroundColor: '#7d5236', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 10, width: 120, height: 120, alignItems: 'center', justifyContent: 'center', shadowColor: '#8b5e34', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
   spacer: { width: 120, height: 120 },
   gridTitle: { color: '#4b3723', fontSize: 14, marginTop: 6, textAlign: 'center', width: '100%', lineHeight: 18 },
   footer: { flex: 0.12 },

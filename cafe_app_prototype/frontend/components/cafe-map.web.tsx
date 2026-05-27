@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useLocation } from '@/context/location'
 
 const QUERY = `[out:json];node["amenity"="cafe"](33.60,-117.95,33.75,-117.67);out;`
 const OVERPASS_MIRRORS = [
@@ -20,7 +21,11 @@ async function fetchCafes() {
 
 export default function CafeMap() {
   const mapRef = useRef<HTMLDivElement>(null)
+  const leafletMapRef = useRef<any>(null)
+  const userMarkerRef = useRef<any>(null)
   const initialized = useRef(false)
+  const [mapReady, setMapReady] = useState(false)
+  const { showLocation } = useLocation()
 
   useEffect(() => {
     if (initialized.current || !mapRef.current) return
@@ -64,8 +69,45 @@ export default function CafeMap() {
           .addTo(map)
           .bindPopup(`<strong>${cafe.tags?.name || 'Cafe'}</strong>`)
       })
+
+      leafletMapRef.current = map
+      setMapReady(true)
     })
   }, [])
+
+  useEffect(() => {
+    if (!mapReady || !leafletMapRef.current) return
+
+    import('leaflet').then(L => {
+      if (showLocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            if (userMarkerRef.current) {
+              userMarkerRef.current.remove()
+            }
+            const userIcon = L.divIcon({
+              className: '',
+              html: `<div style="width:16px;height:16px;border-radius:50%;background:#4285F4;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`,
+              iconSize: [16, 16],
+              iconAnchor: [8, 8],
+            })
+            userMarkerRef.current = L.marker(
+              [pos.coords.latitude, pos.coords.longitude],
+              { icon: userIcon }
+            ).addTo(leafletMapRef.current).bindPopup('You are here')
+
+            leafletMapRef.current.setView([pos.coords.latitude, pos.coords.longitude], 15)
+          },
+          () => {}
+        )
+      } else {
+        if (userMarkerRef.current) {
+          userMarkerRef.current.remove()
+          userMarkerRef.current = null
+        }
+      }
+    })
+  }, [showLocation, mapReady])
 
   return (
     <div

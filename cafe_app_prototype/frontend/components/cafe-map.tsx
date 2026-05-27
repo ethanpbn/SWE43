@@ -1,7 +1,10 @@
 import MapView, { PROVIDER_DEFAULT } from 'react-native-maps'
 import { StyleSheet } from 'react-native'
+import { useLocation } from '@/context/location'
 
 export default function CafeMap() {
+  const { showLocation } = useLocation()
+
   return (
     <MapView
       provider={PROVIDER_DEFAULT}
@@ -12,6 +15,8 @@ export default function CafeMap() {
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       }}
+      showsUserLocation={showLocation}
+      followsUserLocation={false}
     />
   )
 }
