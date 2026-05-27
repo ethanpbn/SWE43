@@ -19,31 +19,63 @@ function fmtTime(hhmm: string): string {
   return m === 0 ? `${h12} ${period}` : `${h12}:${String(m).padStart(2, '0')} ${period}`
 }
 
+function dayInRange(day: number, from: number, to: number): boolean {
+  return from <= to ? day >= from && day <= to : day >= from || day <= to
+}
+
 function formatHours(raw: string): string {
-  if (raw.trim() === '24/7') return 'Open 24 hours'
+  if (!raw?.trim()) return raw
+  const trimmed = raw.trim()
+  if (trimmed === '24/7') return 'Open 24 hours'
 
   const now = new Date()
   const todayIdx = now.getDay()
   const curMins = now.getHours() * 60 + now.getMinutes()
 
-  for (const rule of raw.split(';').map(s => s.trim())) {
-    const m = rule.match(/^([A-Z][a-z])(?:-([A-Z][a-z]))?\s+(\d{2}:\d{2})-(\d{2}:\d{2})$/)
-    if (!m) continue
-    const from = DAY_IDX[m[1]], to = m[2] ? DAY_IDX[m[2]] : from
-    if (from === undefined || to === undefined) continue
-    const inRange = from <= to ? todayIdx >= from && todayIdx <= to : todayIdx >= from || todayIdx <= to
-    if (!inRange) continue
-    const [oh, om] = m[3].split(':').map(Number)
-    const [ch, cm] = m[4].split(':').map(Number)
-    const openMins = oh * 60 + om, closeMins = ch * 60 + cm
-    if (curMins >= openMins && curMins < closeMins) return `Open now · Closes ${fmtTime(m[4])}`
-    if (curMins < openMins) return `Closed · Opens ${fmtTime(m[3])}`
-    return `Closed · Opens ${fmtTime(m[3])} tomorrow`
+  for (const rule of trimmed.split(';').map(s => s.trim())) {
+    if (!rule || /^PH/i.test(rule)) continue
+
+    // Find where the first time value starts
+    const timeIdx = rule.search(/\b\d{2}:\d{2}/)
+    if (timeIdx < 0) continue
+
+    const dayPart = rule.slice(0, timeIdx).trim()
+    const timePart = rule.slice(timeIdx).trim()
+
+    // Check if today is covered by the day spec (empty = every day)
+    let appliesToday = dayPart.length === 0
+    if (!appliesToday) {
+      for (const seg of dayPart.replace(/\s/g, '').split(',')) {
+        const range = seg.match(/^([A-Z][a-z])-([A-Z][a-z])$/)
+        if (range) {
+          const f = DAY_IDX[range[1]], t = DAY_IDX[range[2]]
+          if (f !== undefined && t !== undefined && dayInRange(todayIdx, f, t)) { appliesToday = true; break }
+        } else if (DAY_IDX[seg] === todayIdx) {
+          appliesToday = true; break
+        }
+      }
+    }
+    if (!appliesToday) continue
+
+    // Parse all time intervals in this rule (handles split hours like 08:00-12:00,13:00-18:00)
+    const intervals = [...timePart.matchAll(/(\d{2}:\d{2})-(\d{2}:\d{2})/g)]
+    if (intervals.length === 0) continue
+
+    for (const [, t1, t2] of intervals) {
+      const [oh, om] = t1.split(':').map(Number)
+      const [ch, cm] = t2.split(':').map(Number)
+      const openMins = oh * 60 + om, closeMins = ch * 60 + cm
+      if (curMins >= openMins && curMins < closeMins) return `Open now · Closes ${fmtTime(t2)}`
+      if (curMins < openMins) return `Closed · Opens ${fmtTime(t1)}`
+    }
+    break // past today's hours — fall through to show the prettified schedule
   }
 
-  return raw
+  // Fallback: clean up day abbreviations and convert 24h times
+  return trimmed
     .replace(/\bMo\b/g, 'Mon').replace(/\bTu\b/g, 'Tue').replace(/\bWe\b/g, 'Wed')
     .replace(/\bTh\b/g, 'Thu').replace(/\bFr\b/g, 'Fri').replace(/\bSa\b/g, 'Sat').replace(/\bSu\b/g, 'Sun')
+    .replace(/(Mon|Tue|Wed|Thu|Fri|Sat|Sun),(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/g, '$1/$2')
     .replace(/(\d{2}):(\d{2})/g, (_, h, min) => fmtTime(`${h}:${min}`))
     .replace(/;/g, ' · ')
 }
