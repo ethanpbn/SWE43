@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useAuth } from '@/context/auth'
 import { IconSymbol } from '@/components/ui/icon-symbol'
+import { useLanguage } from '@/context/language'
 
 export type Message = { id: string; text: string; fromMe: boolean; timestamp: number }
 
@@ -46,6 +47,7 @@ export default function ConversationScreen() {
   const { userEmail } = useLocalSearchParams<{ userEmail: string }>()
   const { email: myEmail } = useAuth()
   const router = useRouter()
+  const { t } = useLanguage()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
@@ -116,7 +118,7 @@ export default function ConversationScreen() {
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           ListEmptyComponent={
             <View style={styles.emptyChat}>
-              <Text style={styles.emptyChatText}>Say hello to {name}!</Text>
+              <Text style={styles.emptyChatText}>{t.sayHello.replace('{name}', name)}</Text>
             </View>
           }
           renderItem={({ item, index }) => {
@@ -163,7 +165,7 @@ export default function ConversationScreen() {
         <View style={styles.inputBar}>
           <TextInput
             style={styles.input}
-            placeholder="Message"
+            placeholder={t.messagePlaceholder}
             placeholderTextColor="#9b7a5e"
             value={input}
             onChangeText={setInput}

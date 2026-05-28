@@ -6,6 +6,7 @@ import { ThemedView } from '@/components/themed-view'
 import { IconSymbol } from '@/components/ui/icon-symbol'
 import { useAuth } from '@/context/auth'
 import { useLocation } from '@/context/location'
+import { useLanguage } from '@/context/language'
 import { convKey, type Message } from '../conversation'
 
 const API = 'http://localhost:3000'
@@ -30,10 +31,10 @@ function avatarColor(email: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
-function fmtTimestamp(ts: number): string {
+function fmtTimestamp(ts: number, nowLabel: string): string {
   const now = Date.now()
   const diff = now - ts
-  if (diff < 60_000) return 'Now'
+  if (diff < 60_000) return nowLabel
   if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m`
   if (diff < 86400_000) return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
   return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' })
@@ -44,11 +45,14 @@ type RowProps = {
   blocked: boolean
   preview: string
   timestamp: number | null
+  nowLabel: string
+  blockedLabel: string
+  youHaveBlocked: string
   onToggleBlock: (email: string) => void
   onPress: () => void
 }
 
-function ConversationRow({ user, blocked, preview, timestamp, onToggleBlock, onPress }: RowProps) {
+function ConversationRow({ user, blocked, preview, timestamp, nowLabel, blockedLabel, youHaveBlocked, onToggleBlock, onPress }: RowProps) {
   const name = nameFromEmail(user.email)
   const initials = initialsFromEmail(user.email)
   const bg = blocked ? '#c4a882' : avatarColor(user.email)
@@ -62,7 +66,7 @@ function ConversationRow({ user, blocked, preview, timestamp, onToggleBlock, onP
       <View style={styles.textBlock}>
         <Text style={[styles.name, blocked && styles.nameBlocked]} numberOfLines={1}>{name}</Text>
         <Text style={styles.preview} numberOfLines={1}>
-          {blocked ? 'You have blocked this user.' : preview}
+          {blocked ? youHaveBlocked : preview}
         </Text>
       </View>
 
@@ -77,7 +81,7 @@ function ConversationRow({ user, blocked, preview, timestamp, onToggleBlock, onP
 
       <View style={styles.rightCol}>
         <Text style={styles.timestamp}>
-          {blocked ? 'Blocked' : (timestamp ? fmtTimestamp(timestamp) : 'Now')}
+          {blocked ? blockedLabel : (timestamp ? fmtTimestamp(timestamp, nowLabel) : nowLabel)}
         </Text>
         {!blocked && <View style={styles.unreadDot} />}
       </View>
@@ -93,6 +97,7 @@ export default function MessagesScreen() {
   const { showLocation } = useLocation()
   const { email, token } = useAuth()
   const router = useRouter()
+  const { t } = useLanguage()
 
   const loadUsers = useCallback(() => {
     if (!showLocation) { setNearbyUsers([]); return }
@@ -160,7 +165,7 @@ export default function MessagesScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Messages</Text>
+        <Text style={styles.title}>{t.messages}</Text>
         <TouchableOpacity style={styles.composeBtn} activeOpacity={0.7}>
           <IconSymbol name="square.and.pencil" size={22} color="#7d5236" />
         </TouchableOpacity>
@@ -170,7 +175,7 @@ export default function MessagesScreen() {
         <IconSymbol name="magnifyingglass" size={15} color="#9b7a5e" />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search"
+          placeholder={t.search}
           placeholderTextColor="#9b7a5e"
           value={query}
           onChangeText={setQuery}
@@ -184,13 +189,13 @@ export default function MessagesScreen() {
       {filtered.length === 0 ? (
         <View style={styles.emptyWrap}>
           <IconSymbol name="bubble.left.and.bubble.right.fill" size={52} color="#d4bfa8" />
-          <Text style={styles.emptyTitle}>{query.trim() ? 'No results' : 'No Messages'}</Text>
+          <Text style={styles.emptyTitle}>{query.trim() ? t.noResults : t.noMessages}</Text>
           <Text style={styles.emptyText}>
             {query.trim()
-              ? `No conversations match "${query.trim()}".`
+              ? `${t.noResultsMatch} "${query.trim()}".`
               : showLocation
-                ? 'No nearby users right now.'
-                : 'Turn on Location in Profile to see nearby users.'}
+                ? t.noNearbyUsers
+                : t.enableLocation}
           </Text>
         </View>
       ) : (
@@ -203,8 +208,11 @@ export default function MessagesScreen() {
             <ConversationRow
               user={item}
               blocked={blocked.has(item.email)}
-              preview={previews[item.email]?.text ?? 'No messages yet'}
+              preview={previews[item.email]?.text ?? t.noMessagesSent}
               timestamp={previews[item.email]?.ts ?? null}
+              nowLabel={t.nowLabel}
+              blockedLabel={t.blockedLabel}
+              youHaveBlocked={t.youHaveBlocked}
               onToggleBlock={toggleBlock}
               onPress={() => router.push({ pathname: '/conversation', params: { userEmail: item.email } } as any)}
             />

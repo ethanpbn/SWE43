@@ -64,6 +64,7 @@ export default function CafeMap({ onSelectCafe, nearbyUsers }: Props) {
   useEffect(() => {
     if (initialized.current || !mapRef.current) return
     initialized.current = true
+    let aborted = false
 
     const link = document.createElement('link')
     link.rel = 'stylesheet'
@@ -71,7 +72,7 @@ export default function CafeMap({ onSelectCafe, nearbyUsers }: Props) {
     document.head.appendChild(link)
 
     import('leaflet').then(async L => {
-      if (!mapRef.current) return
+      if (aborted || !mapRef.current) return
 
       delete (L.Icon.Default.prototype as any)._getIconUrl
 
@@ -123,6 +124,7 @@ export default function CafeMap({ onSelectCafe, nearbyUsers }: Props) {
     })
 
     return () => {
+      aborted = true
       initialized.current = false
       if (leafletMapRef.current) {
         leafletMapRef.current.remove()

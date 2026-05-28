@@ -8,8 +8,32 @@ import { IconSymbol } from '@/components/ui/icon-symbol'
 import CafeMap from '@/components/cafe-map'
 import { useAuth } from '@/context/auth'
 import { useLocation } from '@/context/location'
+import { useLanguage, type LangCode } from '@/context/language'
 
 const API = 'http://localhost:3000'
+
+const CUISINE_TR: Partial<Record<string, Partial<Record<LangCode, string>>>> = {
+  coffee:       { es: 'Café',           fr: 'Café',          zh: '咖啡',    ja: 'コーヒー',     ko: '커피' },
+  coffee_shop:  { es: 'Café',            fr: 'Café',          zh: '咖啡馆',  ja: 'カフェ',       ko: '카페' },
+  tea:          { es: 'Té',             fr: 'Thé',           zh: '茶',      ja: 'お茶',         ko: '차' },
+  bubble_tea:   { en: 'Boba tea', es: 'Boba tea', fr: 'Boba tea', zh: '波霸奶茶', ja: 'ボバティー', ko: '버블티' },
+  cake:         { es: 'Pastel',         fr: 'Gâteau',        zh: '蛋糕',    ja: 'ケーキ',       ko: '케이크' },
+  sandwich:     { es: 'Sándwich',       fr: 'Sandwich',      zh: '三明治',  ja: 'サンドイッチ', ko: '샌드위치' },
+  ice_cream:    { es: 'Helado',         fr: 'Glace',         zh: '冰淇淋',  ja: 'アイスクリーム', ko: '아이스크림' },
+  juice:        { es: 'Jugo',           fr: 'Jus',           zh: '果汁',    ja: 'ジュース',     ko: '주스' },
+  smoothie:     { es: 'Batido',         fr: 'Smoothie',      zh: '冰沙',    ja: 'スムージー',   ko: '스무디' },
+  pastry:       { es: 'Pastelería',     fr: 'Pâtisserie',    zh: '糕点',    ja: 'ペストリー',   ko: '패스트리' },
+  bagel:        { es: 'Bagel',          fr: 'Bagel',         zh: '百吉饼',  ja: 'ベーグル',     ko: '베이글' },
+  crepe:        { es: 'Crep',           fr: 'Crêpe',         zh: '可丽饼',  ja: 'クレープ',     ko: '크레페' },
+  waffle:       { es: 'Gofre',          fr: 'Gaufre',        zh: '华夫饼',  ja: 'ワッフル',     ko: '와플' },
+}
+
+function translateCuisine(raw: string, lang: LangCode): string {
+  const key = raw.toLowerCase().trim()
+  const translation = CUISINE_TR[key]?.[lang]
+  if (translation) return translation
+  return raw.replace(/_shop$/i, '').replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())
+}
 
 type SelectedCafe = { id: string; name: string; rating: number; street?: string; city: string; hours?: string; cuisine?: string }
 
@@ -26,10 +50,12 @@ function dayInRange(day: number, from: number, to: number): boolean {
   return from <= to ? day >= from && day <= to : day >= from || day <= to
 }
 
-function formatHours(raw: string): string {
+type HoursStrings = { open24h: string; openNow: string; closes: string; closedOpens: string }
+
+function formatHours(raw: string, s: HoursStrings): string {
   if (!raw?.trim()) return raw
   const trimmed = raw.trim()
-  if (trimmed === '24/7') return 'Open 24 hours'
+  if (trimmed === '24/7') return s.open24h
 
   const now = new Date()
   const todayIdx = now.getDay()
@@ -68,8 +94,8 @@ function formatHours(raw: string): string {
       const [oh, om] = t1.split(':').map(Number)
       const [ch, cm] = t2.split(':').map(Number)
       const openMins = oh * 60 + om, closeMins = ch * 60 + cm
-      if (curMins >= openMins && curMins < closeMins) return `Open now · Closes ${fmtTime(t2)}`
-      if (curMins < openMins) return `Closed · Opens ${fmtTime(t1)}`
+      if (curMins >= openMins && curMins < closeMins) return `${s.openNow} · ${s.closes} ${fmtTime(t2)}`
+      if (curMins < openMins) return `${s.closedOpens} ${fmtTime(t1)}`
     }
     break // past today's hours — fall through to show the prettified schedule
   }
@@ -98,6 +124,7 @@ export default function ExploreScreen() {
   const [nearbyUsers, setNearbyUsers] = useState<{ lat: number; lng: number }[]>([])
   const { email, token } = useAuth()
   const { showLocation } = useLocation()
+  const { t, lang } = useLanguage()
 
   const fetchNearbyUsers = useCallback(() => {
     if (!showLocation) { setNearbyUsers([]); return }
@@ -143,8 +170,8 @@ export default function ExploreScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.header}>
-        <ThemedText type="title" style={styles.title}>Explore</ThemedText>
-        <ThemedText type="subtitle" style={styles.subtitle}>Find cafes, see routes, and explore the map.</ThemedText>
+        <ThemedText type="title" style={styles.title}>{t.explore}</ThemedText>
+        <ThemedText type="subtitle" style={styles.subtitle}>{t.exploreSubtitle}</ThemedText>
       </View>
 
       <View style={styles.mapCard}>
@@ -163,14 +190,14 @@ export default function ExploreScreen() {
                 </TouchableOpacity>
               </View>
               <StarRating rating={selectedCafe.rating} />
-              <Text style={styles.cafeDetail}>Location: {selectedCafe.street ? `${selectedCafe.street}, ${selectedCafe.city}` : selectedCafe.city}</Text>
-              {selectedCafe.hours && <Text style={styles.cafeDetail}>Hours: {formatHours(selectedCafe.hours)}</Text>}
-              {selectedCafe.cuisine && <Text style={styles.cafeDetail}>Specialty: {selectedCafe.cuisine.replace(/_shop$/i, '').replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())}</Text>}
+              <Text style={styles.cafeDetail}>{t.locationLabel}: {selectedCafe.street ? `${selectedCafe.street}, ${selectedCafe.city}` : selectedCafe.city}</Text>
+              {selectedCafe.hours && <Text style={styles.cafeDetail}>{t.hoursLabel}: {formatHours(selectedCafe.hours, t)}</Text>}
+              {selectedCafe.cuisine && <Text style={styles.cafeDetail}>{t.specialtyLabel}: {translateCuisine(selectedCafe.cuisine, lang)}</Text>}
             </>
           ) : (
             <>
-              <ThemedText type="defaultSemiBold" style={styles.badgeTitle}>Top picks nearby</ThemedText>
-              <ThemedText style={styles.badgeSubtitle}>Tap a marker to see details.</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.badgeTitle}>{t.topPicksNearby}</ThemedText>
+              <ThemedText style={styles.badgeSubtitle}>{t.tapMarker}</ThemedText>
             </>
           )}
         </View>

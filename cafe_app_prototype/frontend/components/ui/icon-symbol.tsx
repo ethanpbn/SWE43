@@ -29,6 +29,8 @@ const MAPPING = {
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'bubble.left.fill': 'chat',
+  'checkmark': 'check',
+  'square.and.pencil': 'edit',
 } as IconMapping;
 
 /**

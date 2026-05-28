@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { ThemedView } from '@/components/themed-view'
 import { IconSymbol } from '@/components/ui/icon-symbol'
 import { useAuth } from '@/context/auth'
+import { useLanguage } from '@/context/language'
 
 const API = 'http://localhost:3000'
 
@@ -24,6 +25,7 @@ export default function BlockedScreen() {
   const [blockedEmails, setBlockedEmails] = useState<string[]>([])
   const { email, token } = useAuth()
   const router = useRouter()
+  const { t } = useLanguage()
 
   useEffect(() => {
     if (!email) return
@@ -51,7 +53,7 @@ export default function BlockedScreen() {
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
             <IconSymbol name="chevron.left" size={22} color="#7d5236" />
           </TouchableOpacity>
-          <Text style={styles.title}>Blocked Users</Text>
+          <Text style={styles.title}>{t.blockedUsers}</Text>
           <View style={{ width: 22 }} />
         </View>
       </View>
@@ -59,8 +61,8 @@ export default function BlockedScreen() {
       {blockedEmails.length === 0 ? (
         <View style={styles.emptyCard}>
           <IconSymbol name="nosign" size={40} color="#c4a882" />
-          <Text style={styles.emptyTitle}>No blocked users</Text>
-          <Text style={styles.emptyText}>Users you block will appear here.</Text>
+          <Text style={styles.emptyTitle}>{t.noBlockedUsers}</Text>
+          <Text style={styles.emptyText}>{t.usersBlockAppear}</Text>
         </View>
       ) : (
         <FlatList
@@ -82,7 +84,7 @@ export default function BlockedScreen() {
                 onPress={() => unblock(item)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.unblockText}>Unblock</Text>
+                <Text style={styles.unblockText}>{t.unblock}</Text>
               </TouchableOpacity>
             </View>
           )}

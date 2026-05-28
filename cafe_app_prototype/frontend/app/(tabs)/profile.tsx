@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/themed-view'
 import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol'
 import { useAuth } from '@/context/auth'
 import { useLocation } from '@/context/location'
+import { useLanguage, LANGUAGES } from '@/context/language'
 
 const ITEMS: ReadonlyArray<{
   key: string
@@ -30,6 +31,9 @@ export default function ProfileScreen() {
   const { width, height } = useWindowDimensions()
   const { logout, email } = useAuth()
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null)
+  const [showTerms, setShowTerms] = useState(false)
+  const [showLang, setShowLang] = useState(false)
+  const { t, lang, setLang } = useLanguage()
 
   useEffect(() => {
     if (!email) return
@@ -56,11 +60,14 @@ export default function ProfileScreen() {
   const router = useRouter()
   const { showLocation, toggleLocation } = useLocation()
 
-  const [showTerms, setShowTerms] = useState(false)
-
   const handleLogoff = () => {
     logout()
     router.replace('/login')
+  }
+
+  const labelMap: Record<string, string> = {
+    favorites: t.favorites, history: t.history, language: t.language,
+    location: t.location, blocks: t.blocks, terms: t.terms, logoff: t.logOff,
   }
 
   const avatarSize = Math.max(120, Math.min(200, Math.floor(Math.min(width, height) * 0.36)))
@@ -80,7 +87,7 @@ export default function ProfileScreen() {
             </View>
           )}
           <View style={styles.avatarEditBadge}>
-            <Text style={styles.avatarEditText}>Change Photo</Text>
+            <Text style={styles.avatarEditText}>{t.changePhoto}</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -106,15 +113,17 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 style={[buttonBg, { width: buttonSize, height: buttonSize, borderRadius: Math.round(buttonSize * 0.12) }]}
                 activeOpacity={0.85}
-                onPress={isLocationButton ? toggleLocation : item.key === 'logoff' ? handleLogoff : item.key === 'favorites' ? () => router.push('/favorites') : item.key === 'blocks' ? () => router.push('/blocked') : item.key === 'terms' ? () => setShowTerms(true) : undefined}
+                onPress={isLocationButton ? toggleLocation : item.key === 'logoff' ? handleLogoff : item.key === 'favorites' ? () => router.push('/favorites') : item.key === 'blocks' ? () => router.push('/blocked') : item.key === 'terms' ? () => setShowTerms(true) : item.key === 'language' ? () => setShowLang(true) : undefined}
               >
                 <IconSymbol name={item.icon!} size={iconSize} color={iconColor} />
-                <ThemedText type="defaultSemiBold" style={[styles.gridTitle, extraTitleStyle, { fontSize: labelFontSize, color: titleColor }]}>{item.label}</ThemedText>
+                <ThemedText type="defaultSemiBold" style={[styles.gridTitle, extraTitleStyle, { fontSize: labelFontSize, color: titleColor }]}>{labelMap[item.key] ?? item.label}</ThemedText>
               </TouchableOpacity>
             )
           }}
         />
       </View>
+
+      {/* Terms of Service Modal */}
       <Modal visible={showTerms} transparent animationType="fade" onRequestClose={() => setShowTerms(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -144,6 +153,34 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Language Selection Modal */}
+      <Modal visible={showLang} transparent animationType="fade" onRequestClose={() => setShowLang(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{t.selectLanguage}</Text>
+            <View style={styles.langList}>
+              {LANGUAGES.map(l => (
+                <TouchableOpacity
+                  key={l.code}
+                  style={[styles.langRow, lang === l.code && styles.langRowSelected]}
+                  onPress={() => setLang(l.code)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.langNative, lang === l.code && styles.langNativeSelected]}>{l.native}</Text>
+                  <Text style={[styles.langLabel, lang === l.code && styles.langLabelSelected]}>{l.label}</Text>
+                  {lang === l.code && (
+                    <IconSymbol name="checkmark" size={18} color="#7d5236" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity style={styles.modalClose} onPress={() => setShowLang(false)} activeOpacity={0.8}>
+              <Text style={styles.modalCloseText}>{t.done}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   )
 }
@@ -169,6 +206,13 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: '700', color: '#4b3723', marginBottom: 14, textAlign: 'center' },
   modalScroll: { marginBottom: 16 },
   modalText: { fontSize: 13, color: '#7a5f4d', lineHeight: 20 },
-  modalClose: { backgroundColor: '#7d5236', borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
+  modalClose: { backgroundColor: '#7d5236', borderRadius: 14, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
   modalCloseText: { color: '#fff8f2', fontWeight: '700', fontSize: 15 },
+  langList: { marginBottom: 8 },
+  langRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 12, borderRadius: 12, marginBottom: 4 },
+  langRowSelected: { backgroundColor: '#f3e8dc' },
+  langNative: { fontSize: 16, fontWeight: '600', color: '#4b3723', flex: 1 },
+  langNativeSelected: { color: '#7d5236' },
+  langLabel: { fontSize: 14, color: '#9b7a5e', marginRight: 8 },
+  langLabelSelected: { color: '#7d5236' },
 })
