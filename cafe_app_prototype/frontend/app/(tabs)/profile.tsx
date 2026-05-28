@@ -106,7 +106,7 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 style={[buttonBg, { width: buttonSize, height: buttonSize, borderRadius: Math.round(buttonSize * 0.12) }]}
                 activeOpacity={0.85}
-                onPress={isLocationButton ? toggleLocation : item.key === 'logoff' ? handleLogoff : item.key === 'favorites' ? () => router.push('/favorites') : item.key === 'terms' ? () => setShowTerms(true) : undefined}
+                onPress={isLocationButton ? toggleLocation : item.key === 'logoff' ? handleLogoff : item.key === 'favorites' ? () => router.push('/favorites') : item.key === 'blocks' ? () => router.push('/blocked') : item.key === 'terms' ? () => setShowTerms(true) : undefined}
               >
                 <IconSymbol name={item.icon!} size={iconSize} color={iconColor} />
                 <ThemedText type="defaultSemiBold" style={[styles.gridTitle, extraTitleStyle, { fontSize: labelFontSize, color: titleColor }]}>{item.label}</ThemedText>

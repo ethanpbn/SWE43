@@ -60,6 +60,17 @@ pool.query(`
   else console.log('Favorites table ready.')
 })
 
+pool.query(`
+  CREATE TABLE IF NOT EXISTS blocks (
+    blocker_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    blocked_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (blocker_id, blocked_id)
+  )
+`, (err) => {
+  if (err) console.error('Error creating blocks table:', err)
+  else console.log('Blocks table ready.')
+})
+
 function requireAuth(req, res, next) {
   const auth = req.headers.authorization
   if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
@@ -146,12 +157,60 @@ app.delete('/api/favorites/:cafeId', requireAuth, async (req, res) => {
   }
 })
 
-app.get('/api/users/locations', async (_req, res) => {
+app.get('/api/users/locations', async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT email, location_lat AS lat, location_lng AS lng FROM users WHERE show_location = TRUE AND location_lat IS NOT NULL'
-    )
+    const auth = req.headers.authorization
+    let currentUserId = null
+    if (auth?.startsWith('Bearer ')) {
+      try { currentUserId = jwt.verify(auth.slice(7), JWT_SECRET).userId } catch {}
+    }
+
+    let result
+    if (currentUserId) {
+      result = await pool.query(
+        `SELECT email, location_lat AS lat, location_lng AS lng FROM users
+         WHERE show_location = TRUE AND location_lat IS NOT NULL AND id != $1
+           AND id NOT IN (
+             SELECT blocked_id FROM blocks WHERE blocker_id = $1
+             UNION
+             SELECT blocker_id FROM blocks WHERE blocked_id = $1
+           )`,
+        [currentUserId]
+      )
+    } else {
+      result = await pool.query(
+        'SELECT email, location_lat AS lat, location_lng AS lng FROM users WHERE show_location = TRUE AND location_lat IS NOT NULL'
+      )
+    }
     res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' })
+  }
+})
+
+app.post('/api/blocks/:targetEmail', requireAuth, async (req, res) => {
+  try {
+    const target = await pool.query('SELECT id FROM users WHERE email = $1', [req.params.targetEmail])
+    if (!target.rows[0]) return res.status(404).json({ error: 'User not found' })
+    await pool.query(
+      'INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [req.user.userId, target.rows[0].id]
+    )
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' })
+  }
+})
+
+app.delete('/api/blocks/:targetEmail', requireAuth, async (req, res) => {
+  try {
+    const target = await pool.query('SELECT id FROM users WHERE email = $1', [req.params.targetEmail])
+    if (!target.rows[0]) return res.status(404).json({ error: 'User not found' })
+    await pool.query(
+      'DELETE FROM blocks WHERE blocker_id = $1 AND blocked_id = $2',
+      [req.user.userId, target.rows[0].id]
+    )
+    res.json({ ok: true })
   } catch (err) {
     res.status(500).json({ error: 'Database error' })
   }

@@ -96,16 +96,21 @@ export default function ExploreScreen() {
   const [selectedCafe, setSelectedCafe] = useState<SelectedCafe | null>(null)
   const [mapFavs, setMapFavs] = useState<Set<string>>(new Set())
   const [nearbyUsers, setNearbyUsers] = useState<{ lat: number; lng: number }[]>([])
-  const { email } = useAuth()
+  const { email, token } = useAuth()
   const { showLocation } = useLocation()
 
-  useEffect(() => {
+  const fetchNearbyUsers = useCallback(() => {
     if (!showLocation) { setNearbyUsers([]); return }
-    fetch(`${API}/api/users/locations`)
+    fetch(`${API}/api/users/locations`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setNearbyUsers(data) })
       .catch(() => {})
-  }, [showLocation])
+  }, [showLocation, token])
+
+  useEffect(() => { fetchNearbyUsers() }, [fetchNearbyUsers])
+  useFocusEffect(useCallback(() => { fetchNearbyUsers() }, [fetchNearbyUsers]))
 
   useEffect(() => {
     if (!email) return
