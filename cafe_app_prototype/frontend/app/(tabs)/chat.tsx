@@ -35,7 +35,7 @@ function fmtTimestamp(ts: number): string {
   const diff = now - ts
   if (diff < 60_000) return 'Now'
   if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m`
-  if (diff < 86400_000) return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  if (diff < 86400_000) return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
   return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, fontWeight: '700', color: '#1c1c1e', marginBottom: 3 },
   nameBlocked: { color: '#9b7a5e' },
   preview: { fontSize: 14, color: '#8e8e93' },
-  rightCol: { width: 46, alignItems: 'flex-end', justifyContent: 'space-between', marginLeft: 8, gap: 6 },
+  rightCol: { width: 58, alignItems: 'flex-end', justifyContent: 'space-between', marginLeft: 8, gap: 6 },
   timestamp: { fontSize: 13, color: '#9b7a5e' },
   unreadDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#7d5236' },
   blockBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginLeft: 8, backgroundColor: 'transparent' },

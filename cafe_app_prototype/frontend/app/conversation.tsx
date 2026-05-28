@@ -39,7 +39,7 @@ function initialsFromEmail(email: string): string {
 }
 
 function fmtTime(ts: number): string {
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
 export default function ConversationScreen() {
