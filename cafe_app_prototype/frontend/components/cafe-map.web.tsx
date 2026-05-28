@@ -121,6 +121,15 @@ export default function CafeMap({ onSelectCafe, nearbyUsers }: Props) {
       leafletMapRef.current = map
       setMapReady(true)
     })
+
+    return () => {
+      initialized.current = false
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove()
+        leafletMapRef.current = null
+      }
+      setMapReady(false)
+    }
   }, [])
 
   // Real user location (blue dot)
