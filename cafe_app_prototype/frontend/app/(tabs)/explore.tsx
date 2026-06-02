@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native'
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useFocusEffect } from 'expo-router'
 import { ThemedText } from '@/components/themed-text'
@@ -36,6 +36,22 @@ function translateCuisine(raw: string, lang: LangCode): string {
 }
 
 type SelectedCafe = { id: string; name: string; rating: number; street?: string; city: string; hours?: string; cuisine?: string }
+type SortBy = 'rating' | 'distance'
+
+const RATING_OPTIONS = [
+  { label: 'Any', value: 0 },
+  { label: '3.5+', value: 3.5 },
+  { label: '4.0+', value: 4.0 },
+  { label: '4.5+', value: 4.5 },
+]
+
+const DISTANCE_OPTIONS = [
+  { label: 'Any', value: 0 },
+  { label: '0.5 km', value: 0.5 },
+  { label: '1 km', value: 1 },
+  { label: '2 km', value: 2 },
+  { label: '5 km', value: 5 },
+]
 
 const DAY_IDX: Record<string, number> = { Mo: 1, Tu: 2, We: 3, Th: 4, Fr: 5, Sa: 6, Su: 0 }
 
@@ -122,6 +138,11 @@ export default function ExploreScreen() {
   const [selectedCafe, setSelectedCafe] = useState<SelectedCafe | null>(null)
   const [mapFavs, setMapFavs] = useState<Set<string>>(new Set())
   const [nearbyUsers, setNearbyUsers] = useState<{ lat: number; lng: number }[]>([])
+  const [minRating, setMinRating] = useState(0)
+  const [maxDistanceKm, setMaxDistanceKm] = useState(0)
+  const [sortBy, setSortBy] = useState<SortBy>('rating')
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const { email, token } = useAuth()
   const { showLocation } = useLocation()
   const { t, lang } = useLanguage()
@@ -167,15 +188,102 @@ export default function ExploreScreen() {
     await AsyncStorage.setItem(`map_favorites_data_${email}`, JSON.stringify(data))
   }
 
+  const isFiltered = minRating > 0 || maxDistanceKm > 0 || sortBy !== 'rating'
+
   return (
     <ThemedView style={styles.container}>
       <View style={styles.header}>
-        <ThemedText type="title" style={styles.title}>{t.explore}</ThemedText>
-        <ThemedText type="subtitle" style={styles.subtitle}>{t.exploreSubtitle}</ThemedText>
+        <View style={styles.headerLeft}>
+          <ThemedText type="title" style={styles.title}>{t.explore}</ThemedText>
+          <ThemedText type="subtitle" style={styles.subtitle}>{t.exploreSubtitle}</ThemedText>
+        </View>
+        <TouchableOpacity
+          style={[styles.filterBtn, filtersOpen && styles.filterBtnActive]}
+          onPress={() => setFiltersOpen(o => !o)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <IconSymbol name="slider.horizontal.3" size={20} color={filtersOpen ? '#fff' : '#7d5236'} />
+          {isFiltered && !filtersOpen && <View style={styles.filterDot} />}
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.searchBar}>
+        <IconSymbol name="magnifyingglass" size={15} color="#9b7a5e" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search cafes..."
+          placeholderTextColor="#9b7a5e"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+          autoCorrect={false}
+          autoCapitalize="none"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <IconSymbol name="xmark.circle.fill" size={16} color="#9b7a5e" />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.mapCard}>
-        <CafeMap onSelectCafe={setSelectedCafe} nearbyUsers={nearbyUsers} />
+        <CafeMap
+          onSelectCafe={setSelectedCafe}
+          nearbyUsers={nearbyUsers}
+          minRating={minRating}
+          maxDistanceKm={maxDistanceKm}
+          sortBy={sortBy}
+          hideZoomControl={filtersOpen}
+          searchQuery={searchQuery}
+        />
+
+        {filtersOpen && (
+          <View style={styles.filterPanel}>
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>★</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll} contentContainerStyle={styles.chipRow}>
+                {RATING_OPTIONS.map(opt => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.chip, minRating === opt.value && styles.chipActive]}
+                    onPress={() => setMinRating(opt.value)}
+                  >
+                    <Text style={[styles.chipText, minRating === opt.value && styles.chipTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <TouchableOpacity
+                style={[styles.sortBtn, sortBy === 'distance' && styles.sortBtnActive]}
+                onPress={() => setSortBy(s => s === 'rating' ? 'distance' : 'rating')}
+              >
+                <Text style={[styles.sortBtnText, sortBy === 'distance' && styles.sortBtnTextActive]}>
+                  {sortBy === 'rating' ? '↓ Rating' : '↑ Nearest'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>📍</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll} contentContainerStyle={styles.chipRow}>
+                {DISTANCE_OPTIONS.map(opt => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.chip, maxDistanceKm === opt.value && styles.chipActive, !showLocation && opt.value > 0 && styles.chipDisabled]}
+                    onPress={() => setMaxDistanceKm(opt.value)}
+                    disabled={!showLocation && opt.value > 0}
+                  >
+                    <Text style={[styles.chipText, maxDistanceKm === opt.value && styles.chipTextActive, !showLocation && opt.value > 0 && styles.chipTextDisabled]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        )}
 
         <View style={styles.infoBadge}>
           {selectedCafe ? (
@@ -208,7 +316,28 @@ export default function ExploreScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
-  header: { marginBottom: 18 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  headerLeft: { flex: 1, marginRight: 12 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#f0e4d4', borderRadius: 12, marginBottom: 10, paddingHorizontal: 12, paddingVertical: 9 },
+  searchInput: { flex: 1, alignSelf: 'stretch', fontSize: 15, color: '#4b3723', borderWidth: 0, borderColor: 'transparent', backgroundColor: '#f0e4d4', outline: 'none', outlineStyle: 'none', outlineWidth: 0 } as any,
+  filterBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#f5e6d3', borderWidth: 1, borderColor: '#d4b896', alignItems: 'center', justifyContent: 'center' },
+  filterBtnActive: { backgroundColor: '#7d5236', borderColor: '#7d5236' },
+  filterDot: { position: 'absolute', top: 9, right: 9, width: 8, height: 8, borderRadius: 4, backgroundColor: '#c8973a', borderWidth: 1.5, borderColor: '#f5e6d3' },
+  filterPanel: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999, backgroundColor: 'rgba(251,241,230,0.97)', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 12, borderBottomLeftRadius: 18, borderBottomRightRadius: 18, gap: 8, shadowColor: '#8b5e34', shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 6 },
+  filterRow: { flexDirection: 'row', alignItems: 'center' },
+  filterLabel: { fontSize: 15, color: '#7d5236', fontWeight: '700', marginRight: 8, width: 22 },
+  chipScroll: { flex: 1 },
+  chipRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 4 },
+  chip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: '#d4b896', backgroundColor: '#f5e6d3' },
+  chipActive: { backgroundColor: '#7d5236', borderColor: '#7d5236' },
+  chipDisabled: { opacity: 0.35 },
+  chipText: { fontSize: 13, fontWeight: '600', color: '#7d5236' },
+  chipTextActive: { color: '#fff' },
+  chipTextDisabled: { color: '#7d5236' },
+  sortBtn: { marginLeft: 8, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: '#d4b896', backgroundColor: '#f5e6d3' },
+  sortBtnActive: { backgroundColor: '#4b3723', borderColor: '#4b3723' },
+  sortBtnText: { fontSize: 13, fontWeight: '600', color: '#7d5236' },
+  sortBtnTextActive: { color: '#fff' },
   title: { fontSize: 32, fontWeight: '800', marginBottom: 6, color: '#4b3723' },
   subtitle: { fontSize: 16, color: '#7d5a44' },
   mapCard: { flex: 1, borderRadius: 24, overflow: 'hidden', backgroundColor: '#fbf1e6', shadowColor: '#8b5e34', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 5 },

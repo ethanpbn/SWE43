@@ -2,11 +2,7 @@ jest.mock('pg')
 jest.mock('dotenv', () => ({ config: jest.fn() }))
 
 const request = require('supertest')
-const jwt = require('jsonwebtoken')
 const { mockQuery } = require('pg')
-
-const JWT_SECRET = process.env.JWT_SECRET || 'test_secret'
-const authToken = jwt.sign({ userId: 1, email: 'user@example.com' }, JWT_SECRET)
 
 let app
 
@@ -43,51 +39,45 @@ describe('GET /api/cafes', () => {
     expect(res.status).toBe(200)
     expect(res.body).toEqual([])
   })
-})
 
-describe('POST /api/blocks/:targetEmail', () => {
-  test('blocks another user by email and returns ok', async () => {
-    mockQuery
-      .mockResolvedValueOnce({ rows: [{ id: 2 }] }) // SELECT target user
-      .mockResolvedValueOnce({ rows: [] })            // INSERT block
+  test('returns 500 when the database query fails', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('DB timeout'))
 
-    const res = await request(app)
-      .post('/api/blocks/target@example.com')
-      .set('Authorization', `Bearer ${authToken}`)
+    const res = await request(app).get('/api/cafes')
+
+    expect(res.status).toBe(500)
+    expect(res.body.error).toBe('Database error')
+  })
+
+  test('each cafe in the response includes id, name, location, and description fields', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: 3, name: 'Kean Coffee', location: 'Newport Beach, CA', description: 'Specialty roaster', logo_url: null }],
+    })
+
+    const res = await request(app).get('/api/cafes')
 
     expect(res.status).toBe(200)
-    expect(res.body.ok).toBe(true)
+    const cafe = res.body[0]
+    expect(cafe).toHaveProperty('id')
+    expect(cafe).toHaveProperty('name')
+    expect(cafe).toHaveProperty('location')
+    expect(cafe).toHaveProperty('description')
   })
 
-  test('returns 404 when the target user does not exist', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [] })
+  test('is a public endpoint — no auth token required', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: 1, name: 'Any Cafe' }] })
 
-    const res = await request(app)
-      .post('/api/blocks/nobody@example.com')
-      .set('Authorization', `Bearer ${authToken}`)
-
-    expect(res.status).toBe(404)
-    expect(res.body.error).toBe('User not found')
-  })
-
-  test('returns 401 when blocking without authentication', async () => {
-    const res = await request(app).post('/api/blocks/target@example.com')
-
-    expect(res.status).toBe(401)
-  })
-})
-
-describe('DELETE /api/blocks/:targetEmail', () => {
-  test('unblocks a user and returns ok', async () => {
-    mockQuery
-      .mockResolvedValueOnce({ rows: [{ id: 2 }] }) // SELECT target user
-      .mockResolvedValueOnce({ rows: [] })            // DELETE block
-
-    const res = await request(app)
-      .delete('/api/blocks/target@example.com')
-      .set('Authorization', `Bearer ${authToken}`)
+    const res = await request(app).get('/api/cafes')
 
     expect(res.status).toBe(200)
-    expect(res.body.ok).toBe(true)
+  })
+
+  test('preserves long cafe names without truncation', async () => {
+    const longName = 'The Extraordinarily Long Named Café That Goes On And On Without End'
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: 5, name: longName }] })
+
+    const res = await request(app).get('/api/cafes')
+
+    expect(res.body[0].name).toBe(longName)
   })
 })

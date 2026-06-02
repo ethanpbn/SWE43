@@ -6,11 +6,33 @@ import 'react-native-reanimated'
 
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { AuthProvider, useAuth } from '@/context/auth'
-import { LocationProvider } from '@/context/location'
+import { LocationProvider, useLocation } from '@/context/location'
 import { LanguageProvider } from '@/context/language'
 
 export const unstable_settings = {
   anchor: '(tabs)',
+}
+
+function CheckinGuard() {
+  const { token, logout } = useAuth()
+  const { checkinExpiresAt, clearCheckin } = useLocation()
+
+  useEffect(() => {
+    if (!token || !checkinExpiresAt) return
+    const delay = checkinExpiresAt - Date.now()
+    if (delay <= 0) {
+      clearCheckin()
+      logout()
+      return
+    }
+    const id = setTimeout(() => {
+      clearCheckin()
+      logout()
+    }, delay)
+    return () => clearTimeout(id)
+  }, [token, checkinExpiresAt])
+
+  return null
 }
 
 function AuthGuard() {
@@ -40,6 +62,7 @@ export default function RootLayout() {
       <LocationProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AuthGuard />
+        <CheckinGuard />
         <Stack>
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="register" options={{ headerShown: false }} />

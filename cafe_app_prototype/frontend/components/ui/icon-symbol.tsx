@@ -31,6 +31,9 @@ const MAPPING = {
   'bubble.left.fill': 'chat',
   'checkmark': 'check',
   'square.and.pencil': 'edit',
+  'slider.horizontal.3': 'tune',
+  'magnifyingglass': 'search',
+  'xmark.circle.fill': 'cancel',
 } as IconMapping;
 
 /**
