@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
-import { useFocusEffect } from 'expo-router'
+import { useFocusEffect, useRouter } from 'expo-router'
 import { useAuth } from '@/context/auth'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 
@@ -9,13 +9,15 @@ const API = 'http://localhost:3000'
 type Friend = { id: number; email: string }
 
 export default function FriendsPanel() {
-  const { token } = useAuth()
+  const { token, email: myEmail } = useAuth()
+  const router = useRouter()
   const [friends, setFriends] = useState<Friend[]>([])
   const [requests, setRequests] = useState<Friend[]>([])
   const [adding, setAdding] = useState(false)
   const [emailInput, setEmailInput] = useState('')
   const [error, setError] = useState('')
   const [sent, setSent] = useState(false)
+  const [openMenu, setOpenMenu] = useState<number | null>(null)
 
   const headers = { Authorization: `Bearer ${token}` }
 
@@ -54,7 +56,18 @@ export default function FriendsPanel() {
 
   const remove = async (id: number) => {
     await fetch(`${API}/api/friends/${id}`, { method: 'DELETE', headers }).catch(() => {})
+    setOpenMenu(null)
     load()
+  }
+
+  const block = async (friendEmail: string, id: number) => {
+    await fetch(`${API}/api/blocks/${encodeURIComponent(friendEmail)}`, { method: 'POST', headers }).catch(() => {})
+    await remove(id)
+  }
+
+  const message = (friendEmail: string) => {
+    setOpenMenu(null)
+    router.push({ pathname: '/conversation', params: { userEmail: friendEmail } } as any)
   }
 
   const scheme = useColorScheme()
@@ -126,14 +139,35 @@ export default function FriendsPanel() {
           {friends.length === 0 ? (
             <Text style={[styles.empty, { color: emptyClr }]}>No friends yet{'\n'}Tap + to add one</Text>
           ) : friends.map(f => (
-            <View key={f.id} style={[styles.row, { backgroundColor: rowBg }]}>
-              <View style={[styles.avatar, { backgroundColor: inputBg }]}>
-                <Text style={[styles.avatarLetter, { color: accentClr }]}>{nameFor(f.email)[0].toUpperCase()}</Text>
+            <View key={f.id}>
+              <View style={[styles.row, { backgroundColor: rowBg }]}>
+                <View style={[styles.avatar, { backgroundColor: inputBg }]}>
+                  <Text style={[styles.avatarLetter, { color: accentClr }]}>{nameFor(f.email)[0].toUpperCase()}</Text>
+                </View>
+                <Text style={[styles.name, { color: nameClr }]} numberOfLines={1}>{nameFor(f.email)}</Text>
+                <TouchableOpacity
+                  onPress={() => setOpenMenu(openMenu === f.id ? null : f.id)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={styles.menuToggle}
+                >
+                  <View style={[styles.menuBar, { backgroundColor: accentClr }]} />
+                  <View style={[styles.menuBar, { backgroundColor: accentClr }]} />
+                  <View style={[styles.menuBar, { backgroundColor: accentClr }]} />
+                </TouchableOpacity>
               </View>
-              <Text style={[styles.name, { color: nameClr }]} numberOfLines={1}>{nameFor(f.email)}</Text>
-              <TouchableOpacity onPress={() => remove(f.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Text style={[styles.rejectText, { color: borderClr }]}>✕</Text>
-              </TouchableOpacity>
+              {openMenu === f.id && (
+                <View style={[styles.dropdown, { backgroundColor: isDark ? '#1a0f06' : '#fff8f2', borderColor: isDark ? '#3a2410' : '#e8d5c0' }]}>
+                  <TouchableOpacity style={styles.dropItem} onPress={() => message(f.email)}>
+                    <Text style={[styles.dropText, { color: accentClr }]}>💬  Message</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.dropItem} onPress={() => remove(f.id)}>
+                    <Text style={[styles.dropText, { color: nameClr }]}>🗑  Remove</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.dropItem} onPress={() => block(f.email, f.id)}>
+                    <Text style={[styles.dropText, { color: '#e74c3c' }]}>🚫  Block</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ))}
         </View>
@@ -163,4 +197,9 @@ const styles = StyleSheet.create({
   acceptText: { fontSize: 13, color: '#fff', fontWeight: '700' },
   rejectText: { fontSize: 14, fontWeight: '600' },
   empty: { fontSize: 13, textAlign: 'center', marginTop: 16, lineHeight: 20 },
+  menuToggle: { padding: 4, gap: 3, justifyContent: 'center' },
+  menuBar: { width: 14, height: 2, borderRadius: 1 },
+  dropdown: { borderRadius: 10, borderWidth: 1, marginBottom: 6, marginTop: -2, overflow: 'hidden' },
+  dropItem: { paddingHorizontal: 12, paddingVertical: 9, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(0,0,0,0.06)' },
+  dropText: { fontSize: 13, fontWeight: '600' },
 })

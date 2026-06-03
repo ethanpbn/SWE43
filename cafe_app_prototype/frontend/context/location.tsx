@@ -17,26 +17,28 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const [showLocation, setShowLocation] = useState(false)
   const [checkinExpiresAt, setCheckinExpiresAt] = useState<number | null>(null)
 
-  // Restore state on mount; drop it silently if it already expired while the app was closed
+  // Restore state on mount — location preference persists indefinitely,
+  // check-in timer is dropped if it expired while the app was closed
   useEffect(() => {
     Promise.all([
       AsyncStorage.getItem('showLocation'),
       AsyncStorage.getItem('checkinExpiresAt'),
     ]).then(([show, expires]) => {
-      const expiresAt = expires ? parseInt(expires, 10) : null
-      if (show === 'true' && expiresAt && expiresAt > Date.now()) {
+      if (show === 'true') {
         setShowLocation(true)
-        setCheckinExpiresAt(expiresAt)
-      } else if (show === 'true') {
-        AsyncStorage.multiRemove(['showLocation', 'checkinExpiresAt'])
+        const expiresAt = expires ? parseInt(expires, 10) : null
+        if (expiresAt && expiresAt > Date.now()) {
+          setCheckinExpiresAt(expiresAt)
+        } else {
+          AsyncStorage.removeItem('checkinExpiresAt')
+        }
       }
     })
   }, [])
 
   const clearCheckin = async () => {
-    setShowLocation(false)
     setCheckinExpiresAt(null)
-    await AsyncStorage.multiRemove(['showLocation', 'checkinExpiresAt'])
+    await AsyncStorage.removeItem('checkinExpiresAt')
   }
 
   const toggleLocation = async () => {
@@ -51,7 +53,9 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         ['checkinExpiresAt', String(expiresAt)],
       ])
     } else {
-      await clearCheckin()
+      setShowLocation(false)
+      setCheckinExpiresAt(null)
+      await AsyncStorage.multiRemove(['showLocation', 'checkinExpiresAt'])
     }
   }
 

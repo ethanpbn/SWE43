@@ -188,9 +188,9 @@ export default function HomeScreen() {
       <View style={styles.row}>
         <View style={styles.left}>
           <View style={[styles.header, { backgroundColor: c.header }]}>
-            <View>
+            {email && <Text style={[styles.emailText, { color: c.sub }]}>{email}</Text>}
+            <View style={styles.headerCenter}>
               <Text style={[styles.title, { color: c.title, fontFamily: "'Dancing Script', cursive" } as any]}>Cafe Hopper</Text>
-              {email && <Text style={[styles.emailText, { color: c.sub }]}>{email}</Text>}
             </View>
             <TouchableOpacity style={[styles.signOutBtn, { borderColor: c.signOutBdr }]} onPress={handleLogout}>
               <Text style={[styles.signOutText, { color: c.signOutTxt }]}>Sign Out</Text>
@@ -243,9 +243,12 @@ const styles = StyleSheet.create({
   right: { flex: 0.3 },
 
   // Header
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderRadius: 18, padding: 14, marginBottom: 16 },
-  title: { fontSize: 32, fontWeight: '700' },
-  emailText: { fontSize: 12, marginTop: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', borderRadius: 18, padding: 14, marginBottom: 16 },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  headerSpacer: { flex: 1 },
+  headerRight: { flexDirection: 'row', alignItems: 'center' },
+  title: { fontSize: 40, fontWeight: '700' },
+  emailText: { fontSize: 12, flex: 1 },
   signOutBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5 },
   signOutText: { fontSize: 12, fontWeight: '700' },
 
