@@ -162,6 +162,8 @@ Approximate run-times:
 
 ### 2.4 Coverage achieved
 
+**Full HTML report:** [docs/coverage/index.html](coverage/index.html)
+
 Last updated: 06/02, 1:18 PM (commit 7ea6e6c)
 
 > Just report the number. 50%+ is fine — you're not chasing 100%. The point is that you measured it (not guessed) and can talk about the gaps.
