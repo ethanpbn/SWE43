@@ -164,18 +164,18 @@ Approximate run-times:
 
 **Full HTML report:** [docs/coverage/index.html](coverage/index.html)
 
-Last updated: 06/02, 1:18 PM (commit 7ea6e6c)
+Last updated: 06/03, 1:38 PM (commit 49bef95)
 
 > Just report the number. 50%+ is fine — you're not chasing 100%. The point is that you measured it (not guessed) and can talk about the gaps.
 
 | Test type | Tool | Coverage % |
 |---|---|---|
 | Unit | Jest `--coverage` | 0% of `server.js` — unit tests exercise replicated inline logic, not the source file directly |
-| Integration | Jest `--coverage` | 87% statements · 90% lines of `server.js` |
-| Combined (overall) | Jest `--coverage` (merged) | 87% statements · 90% lines of `server.js` |
+| Integration | Jest `--coverage` | 72% statements · 74% lines of `server.js` |
+| Combined (overall) | Jest `--coverage` (merged) | 72% statements · 74% lines of `server.js` |
 
 **What's NOT covered and why:**
-The uncovered ~13% of `server.js` is the `ALTER TABLE` branch inside the cafes startup callback and the `location_lat`/`location_lng` update endpoint (those columns exist in the schema but no API route writes to them). These are not tested because they require a live database and have no mock path. Unit tests don't cover source files directly as it would require database access to reach one function and `require()` calls will fail.
+The uncovered ~28% of `server.js` falls into two categories. First, the `app.listen` block and `module.exports` line at the bottom never execute during tests because `require.main === module` is false when the file is `require()`d by Supertest — this is intentional and expected. Second, several error-path `catch` branches and the `ALTER TABLE` startup callback are not reached because the mocked database never returns errors on those specific calls. Unit tests don't cover source files directly as the functions are replicated inline rather than imported.
 
 ---
 
