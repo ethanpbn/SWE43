@@ -61,6 +61,20 @@ pool.query(`
 })
 
 pool.query(`
+  CREATE TABLE IF NOT EXISTS friendships (
+    id SERIAL PRIMARY KEY,
+    requester_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    addressee_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(requester_id, addressee_id)
+  )
+`, (err) => {
+  if (err) console.error('Error creating friendships table:', err)
+  else console.log('Friendships table ready.')
+})
+
+pool.query(`
   CREATE TABLE IF NOT EXISTS blocks (
     blocker_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     blocked_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -157,6 +171,7 @@ app.delete('/api/favorites/:cafeId', requireAuth, async (req, res) => {
   }
 })
 
+
 app.get('/api/users/locations', async (req, res) => {
   try {
     const auth = req.headers.authorization
@@ -214,6 +229,63 @@ app.delete('/api/blocks/:targetEmail', requireAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Database error' })
   }
+})
+
+app.get('/api/friends', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT u.id, u.email FROM friendships f
+      JOIN users u ON (CASE WHEN f.requester_id = $1 THEN f.addressee_id ELSE f.requester_id END = u.id)
+      WHERE (f.requester_id = $1 OR f.addressee_id = $1) AND f.status = 'accepted'
+    `, [req.user.userId])
+    res.json(result.rows)
+  } catch (err) { res.status(500).json({ error: 'Database error' }) }
+})
+
+app.get('/api/friends/requests', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT u.id, u.email FROM friendships f
+      JOIN users u ON f.requester_id = u.id
+      WHERE f.addressee_id = $1 AND f.status = 'pending'
+    `, [req.user.userId])
+    res.json(result.rows)
+  } catch (err) { res.status(500).json({ error: 'Database error' }) }
+})
+
+app.post('/api/friends/request', requireAuth, async (req, res) => {
+  const { email } = req.body
+  try {
+    const target = await pool.query('SELECT id FROM users WHERE email = $1', [email])
+    if (!target.rows[0]) return res.status(404).json({ error: 'User not found' })
+    const targetId = target.rows[0].id
+    if (targetId === req.user.userId) return res.status(400).json({ error: 'Cannot add yourself' })
+    await pool.query(
+      'INSERT INTO friendships (requester_id, addressee_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [req.user.userId, targetId]
+    )
+    res.json({ ok: true })
+  } catch (err) { res.status(500).json({ error: 'Database error' }) }
+})
+
+app.put('/api/friends/accept/:requesterId', requireAuth, async (req, res) => {
+  try {
+    await pool.query(
+      'UPDATE friendships SET status = $1 WHERE requester_id = $2 AND addressee_id = $3',
+      ['accepted', req.params.requesterId, req.user.userId]
+    )
+    res.json({ ok: true })
+  } catch (err) { res.status(500).json({ error: 'Database error' }) }
+})
+
+app.delete('/api/friends/:friendId', requireAuth, async (req, res) => {
+  try {
+    await pool.query(
+      'DELETE FROM friendships WHERE (requester_id = $1 AND addressee_id = $2) OR (requester_id = $2 AND addressee_id = $1)',
+      [req.user.userId, req.params.friendId]
+    )
+    res.json({ ok: true })
+  } catch (err) { res.status(500).json({ error: 'Database error' }) }
 })
 
 app.get('/api/cafes', async (req, res) => {

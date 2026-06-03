@@ -1,200 +1,236 @@
 import { useCallback, useEffect, useState } from 'react'
-import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useFocusEffect } from 'expo-router'
+import { useFocusEffect, useRouter } from 'expo-router'
 import { useAuth } from '@/context/auth'
 import { ThemedView } from '@/components/themed-view'
-import { IconSymbol } from '@/components/ui/icon-symbol'
-import { useLanguage, type LangCode } from '@/context/language'
+import FriendsPanel from '@/components/friends-panel'
+import { useColorScheme } from '@/hooks/use-color-scheme'
 
-const API = 'http://localhost:3000'
-
-type Cafe = {
-  id: number
-  name: string
-  location: string
-  description: string
-  logo_url: string
+const LIGHT = {
+  card:       '#fff8f2',
+  cardBorder: '#f0e4d4',
+  header:     '#fbf1e6',
+  avatar:     '#e8d5c0',
+  favCard:    '#fff8f2',
+  favRating:  '#fbf1e6',
+  title:      '#4b3723',
+  name:       '#3d2b1a',
+  sub:        '#9b7a5e',
+  accent:     '#7d5236',
+  star:       '#c8973a',
+  signOutBg:  'transparent',
+  signOutBdr: '#e8d5c0',
+  signOutTxt: '#e74c3c',
+  label:      '#9b7a5e',
+  loading:    '#b09080',
+}
+const DARK = {
+  card:       '#1e1208',
+  cardBorder: '#2e1e0e',
+  header:     '#1a0f06',
+  avatar:     '#3a2410',
+  favCard:    '#1e1208',
+  favRating:  '#2e1e0e',
+  title:      '#f0ddc8',
+  name:       '#e8d0b8',
+  sub:        '#7d6050',
+  accent:     '#c8973a',
+  star:       '#c8973a',
+  signOutBg:  'transparent',
+  signOutBdr: '#3a2410',
+  signOutTxt: '#e07060',
+  label:      '#6a5040',
+  loading:    '#6a5040',
 }
 
-const DESCRIPTIONS: Partial<Record<number, Partial<Record<LangCode, string>>>> = {
-  1: { // Kean Coffee
-    es: 'Tostador especializado premiado, reconocido por su espresso de origen único y pour-overs artesanales.',
-    fr: 'Torréfacteur spécialisé primé, reconnu pour ses expressos mono-origine et ses pour-overs soigneusement préparés.',
-    zh: '屡获殊荣的精品烘焙商，以单一产地浓缩咖啡和精心冲泡的手冲咖啡著称。',
-    ja: '受賞歴のあるスペシャルティロースター。シングルオリジンエスプレッソと丁寧なプアオーバーで知られる。',
-    ko: '수상 경력의 스페셜티 로스터로, 단일 원산지 에스프레소와 정성스러운 핸드드립으로 유명합니다.',
-  },
-  2: { // Portola Coffee
-    es: 'Café de la granja a la taza con menús de temporada y un ambiente cálido y acogedor.',
-    fr: 'Café de la ferme à la tasse avec des menus saisonniers et une atmosphère chaleureuse et accueillante.',
-    zh: '从农场到杯子的咖啡，配以季节性菜单和温馨的氛围。',
-    ja: '農場から一杯へ。季節のメニューと温かくくつろげる雰囲気が魅力。',
-    ko: '농장에서 컵으로 이어지는 커피, 계절 메뉴와 따뜻하고 편안한 분위기.',
-  },
-  3: { // Philz Coffee
-    es: 'Preparado a mano taza por taza: mezclas exclusivas hechas exactamente a tu gusto.',
-    fr: 'Préparé à la main, une tasse à la fois — des mélanges signature adaptés exactement à votre goût.',
-    zh: '一次只做一杯，手工制作——专属混合咖啡完全按照您的口味定制。',
-    ja: '一杯一杯ていねいに手作り。あなたの好みに合わせたシグネチャーブレンド。',
-    ko: '한 번에 한 잔씩 손으로 만들어—당신의 취향에 맞춘 시그니처 블렌드.',
-  },
-  4: { // Starbucks
-    es: 'Tu cafetería de barrio para bebidas artesanales, comida fresca y Wi-Fi gratuito.',
-    fr: 'Votre café de quartier pour des boissons artisanales, de la nourriture fraîche et le Wi-Fi gratuit.',
-    zh: '您家附近的咖啡馆，提供手工饮品、新鲜食品和免费Wi-Fi。',
-    ja: '地域に根ざしたコーヒーハウス。手作りドリンク、新鮮な食事、無料Wi-Fiを提供。',
-    ko: '동네 커피숍에서 수제 음료, 신선한 음식, 무료 Wi-Fi를 즐기세요.',
-  },
-  5: { // The Coffee Bean & Tea Leaf
-    es: 'Café y té premium desde 1963, famoso por sus bebidas mezcladas Ice Blended®.',
-    fr: 'Café et thé premium depuis 1963, célèbre pour ses boissons Ice Blended®.',
-    zh: '自1963年起提供优质咖啡和茶，以冰沙Ice Blended®饮品闻名。',
-    ja: '1963年創業のプレミアムコーヒー＆ティー。アイスブレンデッド®ドリンクで有名。',
-    ko: '1963년부터 이어온 프리미엄 커피와 차, Ice Blended® 음료로 유명합니다.',
-  },
-  6: { // 85°C Bakery Cafe
-    es: 'Panadería café estilo taiwanés con productos horneados frescos y el icónico café con sal marina.',
-    fr: 'Café-boulangerie de style taïwanais proposant des pâtisseries fraîches et le célèbre café au sel de mer.',
-    zh: '台式烘焙咖啡馆，供应新鲜烘焙糕点和标志性海盐咖啡。',
-    ja: '台湾スタイルのベーカリーカフェ。焼きたてのパンと名物の海塩コーヒーを提供。',
-    ko: '대만식 베이커리 카페로 갓 구운 빵과 시그니처 바다 소금 커피를 제공합니다.',
-  },
-  7: { // Peet's Coffee
-    es: 'Café tostado profundo y artesanal con un legado de calidad sin concesiones desde 1966.',
-    fr: 'Café torréfié en profondeur et artisanal avec un héritage de qualité irréprochable depuis 1966.',
-    zh: '深度烘焙的手工咖啡，自1966年以来秉承不妥协的品质传承。',
-    ja: '1966年以来の妥協なき品質の伝統。深煎りの手作りコーヒー。',
-    ko: '1966년부터 이어온 타협 없는 품질의 전통, 깊게 로스팅된 수제 커피.',
-  },
-  8: { // Bear Coast Coffee
-    es: 'Café de cultura surf de SoCal con mezclas de origen único y un ambiente relajado.',
-    fr: 'Café de la culture surf de SoCal avec des cafés mono-origine de qualité et une ambiance décontractée.',
-    zh: '南加州冲浪文化咖啡馆，提供优质单一产地咖啡和休闲氛围。',
-    ja: '南カリフォルニアのサーフカルチャーカフェ。シングルオリジンの高品質コーヒーとのんびりした雰囲気。',
-    ko: '소칼 서핑 문화 카페로 싱글 오리진 고품질 커피와 느긋한 분위기를 즐길 수 있습니다.',
-  },
+const QUERY = `[out:json];node["amenity"="cafe"](33.60,-117.95,33.75,-117.67);out;`
+const MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+]
+
+async function fetchOsmCafes() {
+  for (const m of MIRRORS) {
+    try {
+      const r = await fetch(`${m}?data=${encodeURIComponent(QUERY)}`)
+      if (!r.ok) continue
+      const d = await r.json()
+      if (d.elements?.length) return d.elements
+    } catch {}
+  }
+  return []
 }
 
-function getDescription(cafe: Cafe, lang: LangCode): string {
-  if (lang === 'en') return cafe.description
-  return DESCRIPTIONS[cafe.id]?.[lang] ?? cafe.description
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
+
+function ratingFor(id: string) {
+  const seed = [...id].reduce((acc, ch) => acc * 31 + ch.charCodeAt(0), 7)
+  return parseFloat((3.5 + (seed % 16) * 0.1).toFixed(1))
+}
+
+function getUserLocation(): Promise<{ lat: number; lon: number } | null> {
+  return new Promise(resolve => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        p => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
+        () => resolve(null),
+        { timeout: 5000 }
+      )
+    } else {
+      resolve(null)
+    }
+  })
+}
+
+type OsmCafe = { id: string; name: string; lat: number; lon: number; rating: number; distanceKm?: number }
+type FavCafe = { id: string; name: string; rating: number; city: string; street?: string }
+
+type Colors = typeof LIGHT
+
+function FavCard({ name, rating, c }: { name: string; rating: number; c: Colors }) {
+  return (
+    <View style={[styles.favCard, { backgroundColor: c.favCard }]}>
+      <View style={[styles.favAvatar, { backgroundColor: c.avatar }]}>
+        <Text style={[styles.favAvatarLetter, { color: c.accent }]}>{name.charAt(0).toUpperCase()}</Text>
+      </View>
+      <Text style={[styles.favName, { color: c.name }]} numberOfLines={2}>{name}</Text>
+      <View style={[styles.favRating, { backgroundColor: c.favRating }]}>
+        <Text style={[styles.favRatingStar, { color: c.star }]}>★</Text>
+        <Text style={[styles.favRatingVal, { color: c.accent }]}>{rating.toFixed(1)}</Text>
+      </View>
+    </View>
+  )
+}
+
+function NearbyCard({ name, sub, rating, c }: { name: string; sub: string; rating: number; c: Colors }) {
+  return (
+    <View style={[styles.nearCard, { borderBottomColor: c.cardBorder }]}>
+      <View style={[styles.nearAvatar, { backgroundColor: c.avatar }]}>
+        <Text style={[styles.nearAvatarLetter, { color: c.accent }]}>{name.charAt(0).toUpperCase()}</Text>
+      </View>
+      <View style={styles.nearInfo}>
+        <Text style={[styles.nearName, { color: c.name }]} numberOfLines={1}>{name}</Text>
+        <Text style={[styles.nearSub, { color: c.sub }]} numberOfLines={1}>{sub}</Text>
+      </View>
+      <View style={styles.nearRating}>
+        <Text style={[styles.nearRatingStar, { color: c.star }]}>★</Text>
+        <Text style={[styles.nearRatingVal, { color: c.accent }]}>{rating.toFixed(1)}</Text>
+      </View>
+    </View>
+  )
+}
+
 
 export default function HomeScreen() {
-  const [cafes, setCafes] = useState<Cafe[]>([])
-  const [favorites, setFavorites] = useState<Set<number>>(new Set())
-  const [failedLogos, setFailedLogos] = useState<Set<number>>(new Set())
-  const { email, token } = useAuth()
-  const { t, lang } = useLanguage()
+  const [favCafes, setFavCafes] = useState<FavCafe[]>([])
+  const [nearbyCafes, setNearbyCafes] = useState<OsmCafe[]>([])
+  const [loading, setLoading] = useState(true)
+  const { email, logout } = useAuth()
+  const router = useRouter()
+  const scheme = useColorScheme()
+  const c = scheme === 'dark' ? DARK : LIGHT
 
   useEffect(() => {
-    fetch(`${API}/api/cafes`)
-      .then(res => res.json())
-      .then(data => { if (Array.isArray(data)) setCafes(data) })
-      .catch(() => {})
+    if (typeof document !== 'undefined' && !document.querySelector('#dancing-script-font')) {
+      const link = document.createElement('link')
+      link.id = 'dancing-script-font'
+      link.rel = 'stylesheet'
+      link.href = 'https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap'
+      document.head.appendChild(link)
+    }
   }, [])
 
-  useEffect(() => {
-    if (!email) { setFavorites(new Set()); return }
-    AsyncStorage.getItem(`favorites_${email}`).then(v => {
-      if (v) setFavorites(new Set(JSON.parse(v)))
+  const loadFavorites = useCallback(() => {
+    if (!email) { setFavCafes([]); return }
+    AsyncStorage.getItem(`map_favorites_data_${email}`).then(v => {
+      setFavCafes(v ? (Object.values(JSON.parse(v)) as FavCafe[]) : [])
     })
   }, [email])
 
+  useEffect(() => { loadFavorites() }, [loadFavorites])
+  useFocusEffect(useCallback(() => { loadFavorites() }, [loadFavorites]))
+
   useEffect(() => {
-    if (!token || !email) return
-    fetch(`${API}/api/favorites`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setFavorites(new Set(data))
-          AsyncStorage.setItem(`favorites_${email}`, JSON.stringify(data))
-        }
-      })
-      .catch(() => {})
-  }, [token, email])
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!email) return
-      AsyncStorage.getItem(`favorites_${email}`).then(v => {
-        if (v) setFavorites(new Set(JSON.parse(v)))
-      })
-    }, [email])
-  )
-
-  const toggleFavorite = async (cafeId: number) => {
-    if (!token || !email) return
-    const isFav = favorites.has(cafeId)
-    setFavorites(prev => {
-      const next = new Set(prev)
-      isFav ? next.delete(cafeId) : next.add(cafeId)
-      AsyncStorage.setItem(`favorites_${email}`, JSON.stringify([...next]))
-      return next
+    setLoading(true)
+    Promise.all([fetchOsmCafes(), getUserLocation()]).then(([elements, userPos]) => {
+      const cafes: OsmCafe[] = elements.map((e: any) => ({
+        id: String(e.id),
+        name: e.tags?.name || 'Café',
+        lat: e.lat,
+        lon: e.lon,
+        rating: ratingFor(String(e.id)),
+        distanceKm: userPos ? haversineKm(userPos.lat, userPos.lon, e.lat, e.lon) : undefined,
+      }))
+      cafes.sort((a, b) =>
+        a.distanceKm !== undefined && b.distanceKm !== undefined
+          ? a.distanceKm - b.distanceKm
+          : b.rating - a.rating
+      )
+      setNearbyCafes(cafes.slice(0, 25))
+      setLoading(false)
     })
-    const res = await fetch(`${API}/api/favorites/${cafeId}`, {
-      method: isFav ? 'DELETE' : 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    }).catch(() => null)
-    if (!res || !res.ok) {
-      setFavorites(prev => {
-        const rollback = new Set(prev)
-        isFav ? rollback.add(cafeId) : rollback.delete(cafeId)
-        AsyncStorage.setItem(`favorites_${email}`, JSON.stringify([...rollback]))
-        return rollback
-      })
-    }
-  }
+  }, [])
+
+  const favIds = new Set(favCafes.map(f => f.id))
+  const nearbyFiltered = nearbyCafes.filter(c => !favIds.has(c.id))
+
+  const handleLogout = () => { logout(); router.replace('/login') }
 
   return (
     <ThemedView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{t.cafesNearYou}</Text>
-          <Text style={styles.subtitle}>{t.discoverSpot}</Text>
-          {email ? <Text style={styles.emailText}>{email}</Text> : null}
+      <View style={styles.row}>
+        <View style={styles.left}>
+          <View style={[styles.header, { backgroundColor: c.header }]}>
+            <View>
+              <Text style={[styles.title, { color: c.title, fontFamily: "'Dancing Script', cursive" } as any]}>Cafe Hopper</Text>
+              {email && <Text style={[styles.emailText, { color: c.sub }]}>{email}</Text>}
+            </View>
+            <TouchableOpacity style={[styles.signOutBtn, { borderColor: c.signOutBdr }]} onPress={handleLogout}>
+              <Text style={[styles.signOutText, { color: c.signOutTxt }]}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
+            {favCafes.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionLabel, { color: c.label }]}>Favorites</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.favRow}>
+                  {favCafes.map(fav => (
+                    <FavCard key={fav.id} name={fav.name} rating={fav.rating} c={c} />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: c.label }]}>Cafes Near You</Text>
+              {loading ? (
+                <Text style={[styles.loadingText, { color: c.loading }]}>Finding cafes…</Text>
+              ) : nearbyFiltered.map(cafe => (
+                <NearbyCard
+                  key={cafe.id}
+                  name={cafe.name}
+                  sub={cafe.distanceKm !== undefined
+                    ? `${(cafe.distanceKm * 0.621371).toFixed(1)} mi away`
+                    : 'Irvine, CA'}
+                  rating={cafe.rating}
+                  c={c}
+                />
+              ))}
+            </View>
+          </ScrollView>
         </View>
 
-        {cafes.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>{t.noCafesYet}</Text>
-            <Text style={styles.emptyText}>{t.tryRefreshing}</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={cafes}
-            keyExtractor={item => item.id.toString()}
-            contentContainerStyle={styles.list}
-            renderItem={({ item }) => {
-              const isFav = favorites.has(item.id)
-              return (
-                <View style={styles.cafeCard}>
-                  {!failedLogos.has(item.id) && (
-                    <Image
-                      source={{ uri: item.logo_url }}
-                      style={styles.logo}
-                      resizeMode="contain"
-                      onError={() => setFailedLogos(prev => new Set(prev).add(item.id))}
-                    />
-                  )}
-                  <View style={styles.cafeInfo}>
-                    <Text style={styles.cafeName}>{item.name}</Text>
-                    {item.location ? <Text style={styles.cafeLocation}>{item.location}</Text> : null}
-                    {item.description ? <Text style={styles.cafeDescription}>{getDescription(item, lang)}</Text> : null}
-                  </View>
-                  <TouchableOpacity onPress={() => toggleFavorite(item.id)} style={styles.heartButton} activeOpacity={0.7}>
-                    <IconSymbol
-                      name={isFav ? 'heart.fill' : 'heart'}
-                      size={24}
-                      color={isFav ? '#7d5236' : '#c4a882'}
-                    />
-                  </TouchableOpacity>
-                </View>
-              )
-            }}
-          />
-        )}
+        <View style={styles.right}>
+          <FriendsPanel />
+        </View>
       </View>
     </ThemedView>
   )
@@ -202,20 +238,38 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flex: 1, padding: 20 },
-  header: { backgroundColor: '#fbf1e6', borderRadius: 24, padding: 20, marginBottom: 18, shadowColor: '#8b5e34', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
-  title: { fontSize: 26, fontWeight: '700', color: '#4b3723', marginBottom: 4 },
-  subtitle: { fontSize: 15, color: '#7d5a44', marginBottom: 2 },
-  emailText: { fontSize: 13, color: '#8e725f', marginTop: 4 },
-  emptyCard: { backgroundColor: '#fff7ef', borderRadius: 20, padding: 24, alignItems: 'center', shadowColor: '#8b5e34', shadowOpacity: 0.05, shadowRadius: 18, shadowOffset: { width: 0, height: 7 }, elevation: 3 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#4b3723', marginBottom: 6 },
-  emptyText: { fontSize: 15, color: '#7a5f4d', textAlign: 'center' },
-  list: { paddingTop: 4 },
-  cafeCard: { backgroundColor: '#fff8f2', borderRadius: 20, padding: 16, marginBottom: 14, flexDirection: 'row', alignItems: 'center', shadowColor: '#8b5e34', shadowOpacity: 0.05, shadowRadius: 18, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
-  logo: { width: 64, height: 64, borderRadius: 14, backgroundColor: '#f3e8dc', marginRight: 14, flexShrink: 0 },
-  cafeInfo: { flex: 1 },
-  cafeName: { fontSize: 17, fontWeight: '700', color: '#4f3421', marginBottom: 2 },
-  cafeLocation: { fontSize: 12, color: '#9b7a5e', marginBottom: 4 },
-  cafeDescription: { fontSize: 13, color: '#7a5f4d', lineHeight: 18 },
-  heartButton: { paddingLeft: 12, paddingVertical: 4 },
+  row: { flex: 1, flexDirection: 'row', padding: 16, gap: 12 },
+  left: { flex: 0.7, flexDirection: 'column' },
+  right: { flex: 0.3 },
+
+  // Header
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderRadius: 18, padding: 14, marginBottom: 16 },
+  title: { fontSize: 32, fontWeight: '700' },
+  emailText: { fontSize: 12, marginTop: 1 },
+  signOutBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5 },
+  signOutText: { fontSize: 12, fontWeight: '700' },
+
+  scrollContent: { paddingBottom: 20 },
+  section: { marginBottom: 24 },
+  sectionLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 },
+  loadingText: { fontSize: 13, fontStyle: 'italic' },
+
+  favRow: { gap: 10, paddingRight: 4 },
+  favCard: { width: 110, borderRadius: 16, padding: 12, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  favAvatar: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  favAvatarLetter: { fontSize: 20, fontWeight: '800' },
+  favName: { fontSize: 12, fontWeight: '700', textAlign: 'center', lineHeight: 16, marginBottom: 6 },
+  favRating: { flexDirection: 'row', alignItems: 'center', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
+  favRatingStar: { fontSize: 10, marginRight: 2 },
+  favRatingVal: { fontSize: 11, fontWeight: '700' },
+
+  nearCard: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1 },
+  nearAvatar: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0 },
+  nearAvatarLetter: { fontSize: 15, fontWeight: '700' },
+  nearInfo: { flex: 1 },
+  nearName: { fontSize: 14, fontWeight: '600', marginBottom: 1 },
+  nearSub: { fontSize: 12 },
+  nearRating: { flexDirection: 'row', alignItems: 'center', marginLeft: 8 },
+  nearRatingStar: { fontSize: 11, marginRight: 2 },
+  nearRatingVal: { fontSize: 12, fontWeight: '700' },
 })

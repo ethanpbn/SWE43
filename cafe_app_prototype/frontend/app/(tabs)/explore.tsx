@@ -236,6 +236,7 @@ export default function ExploreScreen() {
           sortBy={sortBy}
           hideZoomControl={filtersOpen}
           searchQuery={searchQuery}
+          favoriteIds={mapFavs}
         />
 
         {filtersOpen && (
@@ -297,6 +298,11 @@ export default function ExploreScreen() {
                   <Text style={styles.closeBtn}>✕</Text>
                 </TouchableOpacity>
               </View>
+              {selectedCafe.distanceKm !== undefined && selectedCafe.distanceKm <= 0.1524 && (
+                <View style={styles.nearbyBadge}>
+                  <Text style={styles.nearbyText}>📍 You're here!</Text>
+                </View>
+              )}
               <StarRating rating={selectedCafe.rating} />
               <Text style={styles.cafeDetail}>{t.locationLabel}: {selectedCafe.street ? `${selectedCafe.street}, ${selectedCafe.city}` : selectedCafe.city}</Text>
               {selectedCafe.hours && <Text style={styles.cafeDetail}>{t.hoursLabel}: {formatHours(selectedCafe.hours, t)}</Text>}
@@ -310,6 +316,7 @@ export default function ExploreScreen() {
           )}
         </View>
       </View>
+
     </ThemedView>
   )
 }
@@ -353,4 +360,6 @@ const styles = StyleSheet.create({
   ratingNum: { fontSize: 13, color: '#7a5f4d', marginLeft: 4 },
   cafeDesc: { fontSize: 13, color: '#7a5f4d', lineHeight: 19 },
   cafeDetail: { fontSize: 13, color: '#7a5f4d', lineHeight: 20, marginTop: 2 },
+  nearbyBadge: { alignSelf: 'flex-start', backgroundColor: '#e6f9ee', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 6, borderWidth: 1, borderColor: '#a8e6c0' },
+  nearbyText: { fontSize: 12, fontWeight: '700', color: '#27ae60' },
 })

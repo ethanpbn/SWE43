@@ -66,7 +66,7 @@ type CafeData = {
   street?: string
 }
 
-export type SelectedCafe = { id: string; name: string; rating: number; street?: string; city: string; hours?: string; cuisine?: string }
+export type SelectedCafe = { id: string; name: string; rating: number; street?: string; city: string; hours?: string; cuisine?: string; distanceKm?: number }
 
 type Props = {
   onSelectCafe?: (cafe: SelectedCafe | null) => void
@@ -76,6 +76,7 @@ type Props = {
   sortBy?: 'rating' | 'distance'
   hideZoomControl?: boolean
   searchQuery?: string
+  favoriteIds?: Set<string>
 }
 
 export default function CafeMap({
@@ -86,11 +87,14 @@ export default function CafeMap({
   sortBy = 'rating',
   hideZoomControl = false,
   searchQuery = '',
+  favoriteIds = new Set(),
 }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
   const leafletMapRef = useRef<any>(null)
   const lRef = useRef<any>(null)
   const redMarkerRef = useRef<any>(null)
+  const greenMarkerRef = useRef<any>(null)
+  const favoriteIdsRef = useRef(favoriteIds)
   const userMarkerRef = useRef<any>(null)
   const nearbyMarkersRef = useRef<any[]>([])
   const cafeMarkersRef = useRef<any[]>([])
@@ -103,6 +107,7 @@ export default function CafeMap({
   const { showLocation } = useLocation()
 
   useEffect(() => { onSelectRef.current = onSelectCafe }, [onSelectCafe])
+  useEffect(() => { favoriteIdsRef.current = favoriteIds }, [favoriteIds])
 
   // Kept in a ref so async geolocation callbacks always invoke the latest version,
   // which closes over the current minRating / maxDistanceKm / sortBy props.
@@ -143,14 +148,19 @@ export default function CafeMap({
     }
 
     cafes.forEach(cafe => {
-      const marker = lRef.current.marker([cafe.lat, cafe.lon], { icon: redMarkerRef.current })
+      const isFav = favoriteIdsRef.current.has(cafe.id)
+      const icon = isFav ? greenMarkerRef.current : redMarkerRef.current
+      const marker = lRef.current.marker([cafe.lat, cafe.lon], { icon })
         .addTo(leafletMapRef.current)
         .on('click', async (e: any) => {
           lRef.current.DomEvent.stopPropagation(e)
           const city = await resolveCity(cafe.tags, cafe.lat, cafe.lon)
           const hours = cafe.tags?.opening_hours as string | undefined
           const cuisine = cafe.tags?.cuisine as string | undefined
-          onSelectRef.current?.({ id: cafe.id, name: cafe.name, rating: cafe.rating, street: cafe.street, city, hours, cuisine })
+          const distanceKm = userPosRef.current
+            ? haversineKm(userPosRef.current.lat, userPosRef.current.lon, cafe.lat, cafe.lon)
+            : undefined
+          onSelectRef.current?.({ id: cafe.id, name: cafe.name, rating: cafe.rating, street: cafe.street, city, hours, cuisine, distanceKm })
         })
       cafeMarkersRef.current.push(marker)
     })
@@ -159,11 +169,11 @@ export default function CafeMap({
   // Sync the ref every render so it always points at the latest closure
   renderMarkersRef.current = renderMarkers
 
-  // Re-render markers whenever filter or sort settings change
+  // Re-render markers whenever filter, sort, or favorites change
   useEffect(() => {
     if (!mapReady) return
     renderMarkersRef.current()
-  }, [minRating, maxDistanceKm, sortBy, searchQuery, mapReady])
+  }, [minRating, maxDistanceKm, sortBy, searchQuery, favoriteIds, mapReady])
 
   // Show/hide the Leaflet zoom control when the filter panel opens/closes
   useEffect(() => {
@@ -215,6 +225,18 @@ export default function CafeMap({
       })
       redMarkerRef.current = redMarker
 
+      const greenMarker = L.divIcon({
+        className: '',
+        html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="28" height="42">
+          <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#27ae60" filter="drop-shadow(0 2px 3px rgba(0,0,0,0.35))"/>
+          <circle cx="12" cy="12" r="5.5" fill="white"/>
+        </svg>`,
+        iconSize: [28, 42],
+        iconAnchor: [14, 42],
+        popupAnchor: [0, -44],
+      })
+      greenMarkerRef.current = greenMarker
+
       zoomControlRef.current = map.zoomControl
       map.on('click', () => onSelectRef.current?.(null))
 
@@ -224,7 +246,8 @@ export default function CafeMap({
         const houseNum = cafe.tags?.['addr:housenumber']
         const streetName = cafe.tags?.['addr:street']
         const street = houseNum && streetName ? `${houseNum} ${streetName}` : streetName
-        const rating = parseFloat((3.8 + (Number(cafe.id) % 13) * 0.1).toFixed(1))
+        const seed = [...String(cafe.id)].reduce((acc, ch) => acc * 31 + ch.charCodeAt(0), 7)
+        const rating = parseFloat((3.5 + (seed % 16) * 0.1).toFixed(1))
         return { id: String(cafe.id), name, rating, lat: cafe.lat, lon: cafe.lon, tags: cafe.tags, street }
       })
 
