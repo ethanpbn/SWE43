@@ -6,7 +6,7 @@ import { useAuth } from '@/context/auth'
 import { ThemedView } from '@/components/themed-view'
 import { IconSymbol } from '@/components/ui/icon-symbol'
 
-const API = 'http://localhost:3000'
+import API from '@/constants/api'
 
 type Cafe = { id: number; name: string; location: string; description: string; logo_url: string }
 type MapCafe = { id: string; name: string; rating: number; street?: string; city: string; hours?: string; cuisine?: string }

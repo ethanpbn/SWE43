@@ -9,7 +9,7 @@ import { useLocation } from '@/context/location'
 import { useLanguage } from '@/context/language'
 import { convKey, type Message } from '../conversation'
 
-const API = 'http://localhost:3000'
+import API from '@/constants/api'
 
 type NearbyUser = { email: string; lat: number; lng: number }
 

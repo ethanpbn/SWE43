@@ -10,7 +10,7 @@ import { useAuth } from '@/context/auth'
 import { useLocation } from '@/context/location'
 import { useLanguage, type LangCode } from '@/context/language'
 
-const API = 'http://localhost:3000'
+import API from '@/constants/api'
 
 const CUISINE_TR: Partial<Record<string, Partial<Record<LangCode, string>>>> = {
   coffee:       { es: 'Café',           fr: 'Café',          zh: '咖啡',    ja: 'コーヒー',     ko: '커피' },
