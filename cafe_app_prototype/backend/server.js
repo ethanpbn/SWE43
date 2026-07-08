@@ -19,77 +19,34 @@ const pool = new Pool({
   }
 })
 
-pool.query(`
-  CREATE TABLE IF NOT EXISTS cafes (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    location VARCHAR(255),
-    description TEXT,
-    logo_url TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`, (err) => {
+pool.query((err) => {
   if (err) console.error('Error creating cafes table:', err)
   else pool.query(`ALTER TABLE cafes ADD COLUMN IF NOT EXISTS logo_url TEXT`, () => {
     console.log('Cafes table ready.')
   })
 })
 
-pool.query(`
-  CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`, (err) => {
+pool.query( (err) => {
   if (err) console.error('Error creating users table:', err)
   else console.log('Users table ready.')
 })
 
-pool.query(`
-  CREATE TABLE IF NOT EXISTS favorites (
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    cafe_id INTEGER REFERENCES cafes(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, cafe_id)
-  )
-`, (err) => {
+pool.query((err) => {
   if (err) console.error('Error creating favorites table:', err)
   else console.log('Favorites table ready.')
 })
 
-pool.query(`
-  ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS location_lat FLOAT,
-    ADD COLUMN IF NOT EXISTS location_lng FLOAT,
-    ADD COLUMN IF NOT EXISTS show_location BOOLEAN DEFAULT FALSE
-`, (err) => {
+pool.query((err) => {
   if (err) console.error('Error adding location columns:', err.message)
   else console.log('Location columns ready.')
 })
 
-pool.query(`
-  CREATE TABLE IF NOT EXISTS friendships (
-    id SERIAL PRIMARY KEY,
-    requester_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    addressee_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    status VARCHAR(20) DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(requester_id, addressee_id)
-  )
-`, (err) => {
+pool.query((err) => {
   if (err) console.error('Error creating friendships table:', err)
   else console.log('Friendships table ready.')
 })
 
-pool.query(`
-  CREATE TABLE IF NOT EXISTS blocks (
-    blocker_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    blocked_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    PRIMARY KEY (blocker_id, blocked_id)
-  )
-`, (err) => {
+pool.query((err) => {
   if (err) console.error('Error creating blocks table:', err)
   else console.log('Blocks table ready.')
 })
