@@ -34,6 +34,7 @@ const MAPPING = {
   'slider.horizontal.3': 'tune',
   'magnifyingglass': 'search',
   'xmark.circle.fill': 'cancel',
+  'bell.fill': 'notifications',
 } as IconMapping;
 
 /**

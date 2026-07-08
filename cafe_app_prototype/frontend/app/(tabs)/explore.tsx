@@ -10,7 +10,7 @@ import { useAuth } from '@/context/auth'
 import { useLocation } from '@/context/location'
 import { useLanguage, type LangCode } from '@/context/language'
 
-const API = 'http://localhost:3000'
+import API from '@/constants/api'
 
 const CUISINE_TR: Partial<Record<string, Partial<Record<LangCode, string>>>> = {
   coffee:       { es: 'Café',           fr: 'Café',          zh: '咖啡',    ja: 'コーヒー',     ko: '커피' },
@@ -137,7 +137,7 @@ function StarRating({ rating }: { rating: number }) {
 export default function ExploreScreen() {
   const [selectedCafe, setSelectedCafe] = useState<SelectedCafe | null>(null)
   const [mapFavs, setMapFavs] = useState<Set<string>>(new Set())
-  const [nearbyUsers, setNearbyUsers] = useState<{ lat: number; lng: number }[]>([])
+  const [nearbyUsers, setNearbyUsers] = useState<{ lat: number; lng: number; email: string }[]>([])
   const [minRating, setMinRating] = useState(0)
   const [maxDistanceKm, setMaxDistanceKm] = useState(0)
   const [sortBy, setSortBy] = useState<SortBy>('rating')
@@ -146,6 +146,24 @@ export default function ExploreScreen() {
   const { email, token } = useAuth()
   const { showLocation } = useLocation()
   const { t, lang } = useLanguage()
+
+  const postLocation = useCallback((lat: number, lon: number) => {
+    if (!token) return
+    fetch(`${API}/api/users/location`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lat, lng: lon }),
+    }).catch(() => {})
+  }, [token])
+
+  useEffect(() => {
+    if (!showLocation && token) {
+      fetch(`${API}/api/users/location`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {})
+    }
+  }, [showLocation, token])
 
   const fetchNearbyUsers = useCallback(() => {
     if (!showLocation) { setNearbyUsers([]); return }
@@ -230,6 +248,7 @@ export default function ExploreScreen() {
       <View style={styles.mapCard}>
         <CafeMap
           onSelectCafe={setSelectedCafe}
+          onUserPosition={postLocation}
           nearbyUsers={nearbyUsers}
           minRating={minRating}
           maxDistanceKm={maxDistanceKm}

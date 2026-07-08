@@ -70,7 +70,8 @@ export type SelectedCafe = { id: string; name: string; rating: number; street?: 
 
 type Props = {
   onSelectCafe?: (cafe: SelectedCafe | null) => void
-  nearbyUsers?: { lat: number; lng: number }[]
+  onUserPosition?: (lat: number, lon: number) => void
+  nearbyUsers?: { lat: number; lng: number; email: string }[]
   minRating?: number
   maxDistanceKm?: number
   sortBy?: 'rating' | 'distance'
@@ -81,6 +82,7 @@ type Props = {
 
 export default function CafeMap({
   onSelectCafe,
+  onUserPosition,
   nearbyUsers,
   minRating = 0,
   maxDistanceKm = 0,
@@ -274,6 +276,7 @@ export default function CafeMap({
         navigator.geolocation.getCurrentPosition(
           pos => {
             userPosRef.current = { lat: pos.coords.latitude, lon: pos.coords.longitude }
+            onUserPosition?.(pos.coords.latitude, pos.coords.longitude)
 
             if (userMarkerRef.current) userMarkerRef.current.remove()
             const icon = L.divIcon({
@@ -307,20 +310,22 @@ export default function CafeMap({
       nearbyMarkersRef.current.forEach(m => m.remove())
       nearbyMarkersRef.current = []
       if (!nearbyUsers?.length) return
-      const icon = L.divIcon({
-        className: '',
-        html: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 36 36" style="filter:drop-shadow(0 3px 5px rgba(0,0,0,0.45)) drop-shadow(0 1px 2px rgba(0,0,0,0.3))">
-          <circle cx="18" cy="18" r="18" fill="#4285F4"/>
-          <circle cx="18" cy="13" r="5.5" fill="white"/>
-          <path d="M6 30c0-6.6 5.4-12 12-12s12 5.4 12 12" fill="white"/>
-        </svg>`,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
-      })
       nearbyUsers.forEach(u => {
+        const initial = (u.email || '?').charAt(0).toUpperCase()
+        const icon = L.divIcon({
+          className: '',
+          html: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" style="filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4))">
+            <circle cx="20" cy="20" r="19" fill="#4285F4" stroke="white" stroke-width="2.5"/>
+            <text x="20" y="26" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="bold" fill="white">${initial}</text>
+          </svg>`,
+          iconSize: [40, 40],
+          iconAnchor: [20, 20],
+          popupAnchor: [0, -22],
+        })
+        const name = u.email.split('@')[0]
         const m = L.marker([u.lat, u.lng], { icon })
           .addTo(leafletMapRef.current)
-          .bindPopup('Nearby user')
+          .bindPopup(`<strong>${name}</strong><br/><span style="font-size:12px;color:#666">${u.email}</span>`)
         nearbyMarkersRef.current.push(m)
       })
     })

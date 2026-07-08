@@ -9,7 +9,7 @@ import { useLocation } from '@/context/location'
 import { useLanguage } from '@/context/language'
 import { convKey, type Message } from '../conversation'
 
-const API = 'http://localhost:3000'
+import API from '@/constants/api'
 
 type NearbyUser = { email: string; lat: number; lng: number }
 
@@ -100,14 +100,12 @@ export default function MessagesScreen() {
   const { t } = useLanguage()
 
   const loadUsers = useCallback(() => {
-    if (!showLocation) { setNearbyUsers([]); return }
-    fetch(`${API}/api/users/locations`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
+    if (!token) return
+    fetch(`${API}/api/friends`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
-      .then(data => { if (Array.isArray(data)) setNearbyUsers(data) })
+      .then(data => { if (Array.isArray(data)) setNearbyUsers(data.map((f: any) => ({ email: f.email, lat: 0, lng: 0 }))) })
       .catch(() => {})
-  }, [showLocation, token])
+  }, [token])
 
   useEffect(() => { loadUsers() }, [loadUsers])
   useFocusEffect(useCallback(() => { loadUsers() }, [loadUsers]))
@@ -193,9 +191,7 @@ export default function MessagesScreen() {
           <Text style={styles.emptyText}>
             {query.trim()
               ? `${t.noResultsMatch} "${query.trim()}".`
-              : showLocation
-                ? t.noNearbyUsers
-                : t.enableLocation}
+              : 'Add friends from the Home tab to start messaging.'}
           </Text>
         </View>
       ) : (

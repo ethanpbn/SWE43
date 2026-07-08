@@ -14,23 +14,15 @@ export const unstable_settings = {
 }
 
 function CheckinGuard() {
-  const { token, logout } = useAuth()
   const { checkinExpiresAt, clearCheckin } = useLocation()
 
   useEffect(() => {
-    if (!token || !checkinExpiresAt) return
+    if (!checkinExpiresAt) return
     const delay = checkinExpiresAt - Date.now()
-    if (delay <= 0) {
-      clearCheckin()
-      logout()
-      return
-    }
-    const id = setTimeout(() => {
-      clearCheckin()
-      logout()
-    }, delay)
+    if (delay <= 0) { clearCheckin(); return }
+    const id = setTimeout(() => clearCheckin(), delay)
     return () => clearTimeout(id)
-  }, [token, checkinExpiresAt])
+  }, [checkinExpiresAt])
 
   return null
 }

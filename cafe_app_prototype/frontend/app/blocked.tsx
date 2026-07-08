@@ -7,7 +7,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol'
 import { useAuth } from '@/context/auth'
 import { useLanguage } from '@/context/language'
 
-const API = 'http://localhost:3000'
+import API from '@/constants/api'
 
 function nameFromEmail(email: string): string {
   const local = email.split('@')[0]

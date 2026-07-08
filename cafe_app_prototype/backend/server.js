@@ -61,6 +61,16 @@ pool.query(`
 })
 
 pool.query(`
+  ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS location_lat FLOAT,
+    ADD COLUMN IF NOT EXISTS location_lng FLOAT,
+    ADD COLUMN IF NOT EXISTS show_location BOOLEAN DEFAULT FALSE
+`, (err) => {
+  if (err) console.error('Error adding location columns:', err.message)
+  else console.log('Location columns ready.')
+})
+
+pool.query(`
   CREATE TABLE IF NOT EXISTS friendships (
     id SERIAL PRIMARY KEY,
     requester_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -172,31 +182,51 @@ app.delete('/api/favorites/:cafeId', requireAuth, async (req, res) => {
 })
 
 
-app.get('/api/users/locations', async (req, res) => {
+app.put('/api/users/location', requireAuth, async (req, res) => {
+  const { lat, lng } = req.body
   try {
-    const auth = req.headers.authorization
-    let currentUserId = null
-    if (auth?.startsWith('Bearer ')) {
-      try { currentUserId = jwt.verify(auth.slice(7), JWT_SECRET).userId } catch {}
-    }
+    await pool.query(
+      'UPDATE users SET location_lat = $1, location_lng = $2, show_location = TRUE WHERE id = $3',
+      [lat, lng, req.user.userId]
+    )
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' })
+  }
+})
 
-    let result
-    if (currentUserId) {
-      result = await pool.query(
-        `SELECT email, location_lat AS lat, location_lng AS lng FROM users
-         WHERE show_location = TRUE AND location_lat IS NOT NULL AND id != $1
-           AND id NOT IN (
-             SELECT blocked_id FROM blocks WHERE blocker_id = $1
-             UNION
-             SELECT blocker_id FROM blocks WHERE blocked_id = $1
-           )`,
-        [currentUserId]
-      )
-    } else {
-      result = await pool.query(
-        'SELECT email, location_lat AS lat, location_lng AS lng FROM users WHERE show_location = TRUE AND location_lat IS NOT NULL'
-      )
-    }
+app.delete('/api/users/location', requireAuth, async (req, res) => {
+  try {
+    await pool.query(
+      'UPDATE users SET location_lat = NULL, location_lng = NULL, show_location = FALSE WHERE id = $1',
+      [req.user.userId]
+    )
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' })
+  }
+})
+
+app.get('/api/users/locations', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT u.email, u.location_lat AS lat, u.location_lng AS lng
+       FROM users u
+       WHERE u.show_location = TRUE
+         AND u.location_lat IS NOT NULL
+         AND u.id != $1
+         AND u.id IN (
+           SELECT CASE WHEN f.requester_id = $1 THEN f.addressee_id ELSE f.requester_id END
+           FROM friendships f
+           WHERE (f.requester_id = $1 OR f.addressee_id = $1) AND f.status = 'accepted'
+         )
+         AND u.id NOT IN (
+           SELECT blocked_id FROM blocks WHERE blocker_id = $1
+           UNION
+           SELECT blocker_id FROM blocks WHERE blocked_id = $1
+         )`,
+      [req.user.userId]
+    )
     res.json(result.rows)
   } catch (err) {
     res.status(500).json({ error: 'Database error' })
