@@ -19,38 +19,6 @@ const pool = new Pool({
   }
 })
 
-pool.query((err) => {
-  if (err) console.error('Error creating cafes table:', err)
-  else pool.query(`ALTER TABLE cafes ADD COLUMN IF NOT EXISTS logo_url TEXT`, () => {
-    console.log('Cafes table ready.')
-  })
-})
-
-pool.query( (err) => {
-  if (err) console.error('Error creating users table:', err)
-  else console.log('Users table ready.')
-})
-
-pool.query((err) => {
-  if (err) console.error('Error creating favorites table:', err)
-  else console.log('Favorites table ready.')
-})
-
-pool.query((err) => {
-  if (err) console.error('Error adding location columns:', err.message)
-  else console.log('Location columns ready.')
-})
-
-pool.query((err) => {
-  if (err) console.error('Error creating friendships table:', err)
-  else console.log('Friendships table ready.')
-})
-
-pool.query((err) => {
-  if (err) console.error('Error creating blocks table:', err)
-  else console.log('Blocks table ready.')
-})
-
 function requireAuth(req, res, next) {
   const auth = req.headers.authorization
   if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
